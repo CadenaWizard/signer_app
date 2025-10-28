@@ -4,3 +4,11 @@ CadenaBitcoin Signer is a mobile application for securely signing Discreet Log C
 It pairs with the DLCPlaza backend to receive, sign, and return Funding, Refund, and CET transactions.
 The app supports both manual and automatic (user-approved) signing modes with built-in verification.
 Designed for sovereignty and reliability, it runs on Android and iOS as a self-contained Bitcoin signer.
+
+[NOTE]
+====
+Contributions are welcome from the open-source community to improve security, reliability, and multi-platform support.
+Join us in building a fully sovereign Bitcoin signer that empowers peer-to-peer financial freedom.
+====
+
+For further information, collaboration, or security discussions, please contact sziller@cadenabitcoin.com
