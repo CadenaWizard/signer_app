@@ -1,4 +1,5 @@
 = signer_app
+
 CadenaBitcoin Signer is a mobile application for securely signing Discreet Log Contract (DLC) Bitcoin transactions.
 It pairs with the DLCPlaza backend to receive, sign, and return Funding, Refund, and CET transactions.
 The app supports both manual and automatic (user-approved) signing modes with built-in verification.
