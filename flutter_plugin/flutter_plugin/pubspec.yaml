@@ -1,0 +1,26 @@
+name: dlc_wallet
+description: A Flutter plugin for DLC Bitcoin wallet operations using Rust backend
+version: 0.1.0
+
+environment:
+  sdk: '>=2.17.0 <4.0.0'
+  flutter: ">=3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  ffi: ^2.0.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.dlcplaza.wallet
+        pluginClass: DlcWalletPlugin
+      ios:
+        pluginClass: DlcWalletPlugin 
