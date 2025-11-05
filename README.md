@@ -1,17 +1,21 @@
 # signer flutter version 3.35.3
 
-A new Flutter project.
+signer_app
 
+Requirements
 
-## Getting Started
+Flutter version: 3.35.3
 
-This project is a starting point for a Flutter application.
+Dart SDK bundled with that Flutter version
 
-A few resources to get you started if this is your first Flutter project:
+Android Studio / Xcode for platform specific builds
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+Running the Project
 
-For help getting started with Flutter development, view the 
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Clone the repository
+
+Run flutter pub get inside the main app
+
+Important: Also run flutter pub get inside the flutter_plugin folder before running the app
+
+Start application: flutter run
