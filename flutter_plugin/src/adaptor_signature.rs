@@ -410,16 +410,19 @@ pub(crate) fn verify_ecdsa_signature(
     }
 }
 
-/// Decrypt a signature on a CET when outcome signatures are available.
-/// Return the decrypted signature.
-pub fn create_final_cet_signature(
-    pubkey: &PublicKey,
+/// Create signatures on a CET when outcome signatures are available
+pub fn create_final_cet_signatures<S: Signing>(
+    secp: &Secp256k1<S>,
+    signing_keypair: &Keypair,
+    other_pubkey: &PublicKey,
     num_digits: u8,
     oracle_signatures: &Vec<SchnorrSignature>,
     cet_value_wildcard: &str,
     cet_sighash: &[u8; 32],
-    adaptor_signature: &EcdsaAdaptorSignature,
-) -> Result<Vec<u8>, String> {
+    other_adaptor_signature: &EcdsaAdaptorSignature,
+) -> Result<(Vec<u8>, Vec<u8>), String> {
+    let signing_key = &signing_keypair.secret_key();
+
     // Decompose oracle signatures
     if oracle_signatures.len() != num_digits as usize {
         return Err(format!(
@@ -447,46 +450,21 @@ pub fn create_final_cet_signature(
     }
     let adaptor_secret_aggregate = aggregate_secret_values(&adaptor_secret_vec)?;
 
-    // Adaptor signature, from the other
-    let mut adapted_sig = adaptor_signature
+    // Adaptor signature from the OTHER
+    let mut adapted_sig = other_adaptor_signature
         .decrypt(&adaptor_secret_aggregate)
         .map_err(|e| format!("Error in adaptor signature decryption {}", e.to_string()))?
         .serialize_der()
         .to_vec();
     adapted_sig.push(EcdsaSighashType::All as u8);
     // verify signature
-    let _res = verify_ecdsa_signature(cet_sighash, &adapted_sig, &pubkey, true).map_err(|e| {
-        format!(
-            "Adaptor-derived signature verification failed {}",
-            e.to_string()
-        )
-    })?;
-
-    Ok(adapted_sig)
-}
-
-/// Create the two signatures on a CET when outcome signatures are available.
-/// Return the decrypted signature of the other, and my own signature (newly created).
-pub fn create_final_cet_signatures<S: Signing>(
-    secp: &Secp256k1<S>,
-    signing_keypair: &Keypair,
-    other_pubkey: &PublicKey,
-    num_digits: u8,
-    oracle_signatures: &Vec<SchnorrSignature>,
-    cet_value_wildcard: &str,
-    cet_sighash: &[u8; 32],
-    other_adaptor_signature: &EcdsaAdaptorSignature,
-) -> Result<(Vec<u8>, Vec<u8>), String> {
-    let signing_key = &signing_keypair.secret_key();
-
-    let adapted_sig = create_final_cet_signature(
-        other_pubkey,
-        num_digits,
-        oracle_signatures,
-        cet_value_wildcard,
-        cet_sighash,
-        other_adaptor_signature,
-    )?;
+    let _res =
+        verify_ecdsa_signature(cet_sighash, &adapted_sig, &other_pubkey, true).map_err(|e| {
+            format!(
+                "Adaptor-derived signature verification failed {}",
+                e.to_string()
+            )
+        })?;
 
     // Now sign the CET on my own part
     let my_sig = sign_hash_ecdsa_with_key(&secp, cet_sighash, &signing_key)?;
