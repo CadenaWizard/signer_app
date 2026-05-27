@@ -3,8 +3,8 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 use crate::adaptor_signature::{
-    create_cet_adaptor_signatures, create_final_cet_signature, create_final_cet_signatures,
-    sign_hash_ecdsa_with_key, sign_schnorr_with_nonce_sec, verify_cet_adaptor_signatures,
+    create_cet_adaptor_signatures, create_final_cet_signatures, sign_hash_ecdsa_with_key,
+    sign_schnorr_with_nonce_sec, verify_cet_adaptor_signatures,
 };
 use crate::hd_wallet_storage::HDWalletStorage;
 
@@ -222,28 +222,7 @@ impl Lib {
         )
     }
 
-    /// Decrypt a signature on a CET when outcome signatures are available.
-    /// Return the decrypted signature.
-    pub fn create_final_cet_sig(
-        pubkey: &PublicKey,
-        num_digits: u8,
-        oracle_signatures: &Vec<SchnorrSignature>,
-        cet_value_wildcard: &str,
-        cet_sighash: &[u8; 32],
-        adaptor_signature: &EcdsaAdaptorSignature,
-    ) -> Result<Vec<u8>, String> {
-        create_final_cet_signature(
-            pubkey,
-            num_digits,
-            oracle_signatures,
-            cet_value_wildcard,
-            cet_sighash,
-            adaptor_signature,
-        )
-    }
-
-    /// Create the two signatures on a CET when outcome signatures are available.
-    /// Return the decrypted signature of the other, and my own signature (newly created).
+    /// Create signatures on a CET when outcome signatures are available
     pub fn create_final_cet_sigs(
         &self,
         signing_key_index: u32,
