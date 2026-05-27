@@ -17,19 +17,18 @@ use crate::secret_entropy_storage::parse_entropy_hex;
 use bitcoin::hex::{DisplayHex, FromHex};
 use bitcoin::secp256k1::{PublicKey, SecretKey};
 use secp256k1_zkp::schnorr::Signature as SchnorrSignature;
-use secp256k1_zkp::EcdsaAdaptorSignature;  // Import missing types
-use std::str::FromStr;
+use secp256k1_zkp::EcdsaAdaptorSignature; // Import missing types
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
+use std::str::FromStr;
 
 // Conditional compilation to exclude PyO3-related code for Android
 #[cfg(feature = "with-pyo3")]
-use pyo3::prelude::*;
-#[cfg(feature = "with-pyo3")]
 use pyo3::exceptions::PyException;
 #[cfg(feature = "with-pyo3")]
+use pyo3::prelude::*;
+#[cfg(feature = "with-pyo3")]
 use pyo3::wrap_pyfunction;
-
 
 /// Initialize the library, load secret from encrypted file. Return the XPUB.
 fn init_intern(
@@ -452,24 +451,32 @@ fn create_final_cet_sigs_intern(
     Ok(sigs)
 }
 
-
 // ##### Facade functions for C-style-interface invocations
 
 /// Initialize the library, provide the secret as parameter. Return the XPUB.
 #[no_mangle]
-pub extern "C" fn init_with_entropy_c(entropy: *const c_char, network: *const c_char) -> *mut c_char {
+pub extern "C" fn init_with_entropy_c(
+    entropy: *const c_char,
+    network: *const c_char,
+) -> *mut c_char {
     // Convert input parameter from raw pointer to Rust string
-    let entropy_str = unsafe { CStr::from_ptr(entropy).to_str().unwrap_or("Error in entropy parameter") };
-    let network_str = unsafe { CStr::from_ptr(network).to_str().unwrap_or("Error in network parameter") };
+    let entropy_str = unsafe {
+        CStr::from_ptr(entropy)
+            .to_str()
+            .unwrap_or("Error in entropy parameter")
+    };
+    let network_str = unsafe {
+        CStr::from_ptr(network)
+            .to_str()
+            .unwrap_or("Error in network parameter")
+    };
 
     match init_with_entropy_intern(entropy_str, network_str) {
         Ok(xpub) => {
             // Return as a C string
             CString::new(xpub).unwrap().into_raw()
         }
-        Err(e) => {
-            error_as_cstr_prefix(e)
-        }
+        Err(e) => error_as_cstr_prefix(e),
     }
 }
 
@@ -481,27 +488,35 @@ pub extern "C" fn get_public_key_c(index: u32) -> *mut c_char {
             // Return as a C string
             CString::new(pubkey).unwrap().into_raw()
         }
-        Err(e) => {
-            error_as_cstr_prefix(e)
-        }
+        Err(e) => error_as_cstr_prefix(e),
     }
 }
 
 /// Sign a hash with a child private key (specified by its index).
 #[no_mangle]
-pub extern "C" fn sign_hash_ecdsa_c(hash: *const c_char, signer_index: u32, signer_pubkey: *const c_char) -> *mut c_char {
+pub extern "C" fn sign_hash_ecdsa_c(
+    hash: *const c_char,
+    signer_index: u32,
+    signer_pubkey: *const c_char,
+) -> *mut c_char {
     // Convert input parameter from raw pointer to Rust string
-    let hash_str = unsafe { CStr::from_ptr(hash).to_str().unwrap_or("Error in hash parameter") };
-    let signer_pubkey_str = unsafe { CStr::from_ptr(signer_pubkey).to_str().unwrap_or("Error in signer_pubkey parameter") };
+    let hash_str = unsafe {
+        CStr::from_ptr(hash)
+            .to_str()
+            .unwrap_or("Error in hash parameter")
+    };
+    let signer_pubkey_str = unsafe {
+        CStr::from_ptr(signer_pubkey)
+            .to_str()
+            .unwrap_or("Error in signer_pubkey parameter")
+    };
 
     match sign_hash_ecdsa_intern(hash_str, signer_index, signer_pubkey_str) {
         Ok(sig) => {
             // Return as a C string
             CString::new(sig).unwrap().into_raw()
         }
-        Err(e) => {
-            error_as_cstr_prefix(e)
-        }
+        Err(e) => error_as_cstr_prefix(e),
     }
 }
 
@@ -519,41 +534,72 @@ pub extern "C" fn create_cet_adaptor_sigs_c(
     sighashes: *const c_char,
 ) -> *mut c_char {
     // Convert input parameter from raw pointer to Rust string
-    let digit_string_template_str = unsafe { CStr::from_ptr(digit_string_template).to_str().unwrap_or("Error in digit_string_template parameter") };
-    let oracle_pubkey_str = unsafe { CStr::from_ptr(oracle_pubkey).to_str().unwrap_or("Error in oracle_pubkey parameter") };
-    let signing_pubkey_str = unsafe { CStr::from_ptr(signing_pubkey).to_str().unwrap_or("Error in signing_pubkey parameter") };
-    let nonces_str = unsafe { CStr::from_ptr(nonces).to_str().unwrap_or("Error in nonces parameter") };
-    let interval_wildcards_str = unsafe { CStr::from_ptr(interval_wildcards).to_str().unwrap_or("Error in interval_wildcards parameter") };
-    let sighashes_str = unsafe { CStr::from_ptr(sighashes).to_str().unwrap_or("Error in sighashes parameter") };
+    let digit_string_template_str = unsafe {
+        CStr::from_ptr(digit_string_template)
+            .to_str()
+            .unwrap_or("Error in digit_string_template parameter")
+    };
+    let oracle_pubkey_str = unsafe {
+        CStr::from_ptr(oracle_pubkey)
+            .to_str()
+            .unwrap_or("Error in oracle_pubkey parameter")
+    };
+    let signing_pubkey_str = unsafe {
+        CStr::from_ptr(signing_pubkey)
+            .to_str()
+            .unwrap_or("Error in signing_pubkey parameter")
+    };
+    let nonces_str = unsafe {
+        CStr::from_ptr(nonces)
+            .to_str()
+            .unwrap_or("Error in nonces parameter")
+    };
+    let interval_wildcards_str = unsafe {
+        CStr::from_ptr(interval_wildcards)
+            .to_str()
+            .unwrap_or("Error in interval_wildcards parameter")
+    };
+    let sighashes_str = unsafe {
+        CStr::from_ptr(sighashes)
+            .to_str()
+            .unwrap_or("Error in sighashes parameter")
+    };
 
-    match create_cet_adaptor_sigs_intern(num_digits, num_cets as u64, digit_string_template_str, oracle_pubkey_str, signing_key_index, signing_pubkey_str, nonces_str, interval_wildcards_str, sighashes_str) {
+    match create_cet_adaptor_sigs_intern(
+        num_digits,
+        num_cets as u64,
+        digit_string_template_str,
+        oracle_pubkey_str,
+        signing_key_index,
+        signing_pubkey_str,
+        nonces_str,
+        interval_wildcards_str,
+        sighashes_str,
+    ) {
         Ok(sigs) => {
             // Return as a C string
             CString::new(sigs).unwrap().into_raw()
         }
-        Err(e) => {
-            error_as_cstr_prefix(e)
-        }
+        Err(e) => error_as_cstr_prefix(e),
     }
 }
 
 #[no_mangle]
-pub extern "C" fn create_deterministic_nonce_c(
-    event_id: *const c_char,
-    index: u32,
-) -> *mut c_char {
+pub extern "C" fn create_deterministic_nonce_c(event_id: *const c_char, index: u32) -> *mut c_char {
     // Convert the event_id from raw pointer to Rust string
-    let event_id_str = unsafe { CStr::from_ptr(event_id).to_str().unwrap_or("Error in event ID") };
+    let event_id_str = unsafe {
+        CStr::from_ptr(event_id)
+            .to_str()
+            .unwrap_or("Error in event ID")
+    };
 
     // Call your existing function that creates the nonce (assuming this is what you want)
     match create_deterministic_nonce_intern(event_id_str, index) {
         Ok((sk, pk)) => {
             // Return as a C string
             CString::new(format!("{} {}", sk, pk)).unwrap().into_raw()
-        },
-        Err(e) => {
-            error_as_cstr_prefix(e)
         }
+        Err(e) => error_as_cstr_prefix(e),
     }
 }
 
@@ -561,55 +607,54 @@ pub extern "C" fn create_deterministic_nonce_c(
 #[no_mangle]
 pub extern "C" fn get_xpub_c() -> *mut c_char {
     match get_xpub_intern() {
-        Ok(xpub) => {
-            CString::new(xpub).unwrap().into_raw()
-        }
-        Err(e) => {
-            error_as_cstr_prefix(e)
-        }
+        Ok(xpub) => CString::new(xpub).unwrap().into_raw(),
+        Err(e) => error_as_cstr_prefix(e),
     }
 }
 
 #[no_mangle]
 pub extern "C" fn get_address_c(index: u32) -> *mut c_char {
     match get_address_intern(index) {
-        Ok(address) => {
-            CString::new(address).unwrap().into_raw()
-        }
-        Err(e) => {
-            error_as_cstr_prefix(e)
-        }
+        Ok(address) => CString::new(address).unwrap().into_raw(),
+        Err(e) => error_as_cstr_prefix(e),
     }
 }
 
 #[no_mangle]
 pub extern "C" fn init_from_file_c(path: *const c_char, password: *const c_char) -> *mut c_char {
-    let path_str = unsafe { CStr::from_ptr(path).to_str().unwrap_or("Error in path parameter") };
-    let password_str = unsafe { CStr::from_ptr(password).to_str().unwrap_or("Error in password parameter") };
+    let path_str = unsafe {
+        CStr::from_ptr(path)
+            .to_str()
+            .unwrap_or("Error in path parameter")
+    };
+    let password_str = unsafe {
+        CStr::from_ptr(password)
+            .to_str()
+            .unwrap_or("Error in password parameter")
+    };
 
     match init_intern(path_str, password_str, false) {
-        Ok(xpub) => {
-            CString::new(xpub).unwrap().into_raw()
-        }
-        Err(e) => {
-            error_as_cstr_prefix(e)
-        }
+        Ok(xpub) => CString::new(xpub).unwrap().into_raw(),
+        Err(e) => error_as_cstr_prefix(e),
     }
 }
 
 #[no_mangle]
 pub extern "C" fn free_cstring(s: *mut c_char) {
     unsafe {
-        if s.is_null() { return }
+        if s.is_null() {
+            return;
+        }
         let _ = CString::from_raw(s);
     }
 }
 
 // Return error with an "ERROR: " prefix, as a C string
 fn error_as_cstr_prefix(error: String) -> *mut c_char {
-    CString::new(format!("ERROR: {}", error)).unwrap().into_raw()
+    CString::new(format!("ERROR: {}", error))
+        .unwrap()
+        .into_raw()
 }
-
 
 // ##### Facade functions for easy Python invocations (pyo3/maturin)
 
@@ -836,5 +881,3 @@ fn dlcplazacryptlib(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(create_final_cet_sigs, m)?)?;
     Ok(())
 }
-
-
