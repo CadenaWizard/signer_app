@@ -576,24 +576,24 @@ pub extern "C" fn get_address_c(index: u32) -> *mut c_char {
     }
 }
 
-#[no_mangle]
-pub extern "C" fn init_from_file_c(path: *const c_char, password: *const c_char) -> *mut c_char {
-    let path_str = unsafe {
-        CStr::from_ptr(path)
-            .to_str()
-            .unwrap_or("Error in path parameter")
-    };
-    let password_str = unsafe {
-        CStr::from_ptr(password)
-            .to_str()
-            .unwrap_or("Error in password parameter")
-    };
+// #[no_mangle]
+// pub extern "C" fn init_from_file_c(path: *const c_char, password: *const c_char) -> *mut c_char {
+//     let path_str = unsafe {
+//         CStr::from_ptr(path)
+//             .to_str()
+//             .unwrap_or("Error in path parameter")
+//     };
+//     let password_str = unsafe {
+//         CStr::from_ptr(password)
+//             .to_str()
+//             .unwrap_or("Error in password parameter")
+//     };
 
-    match init_intern(path_str, password_str, false) {
-        Ok(xpub) => CString::new(xpub).unwrap().into_raw(),
-        Err(e) => error_as_cstr_prefix(e),
-    }
-}
+//     match init_intern(path_str, password_str, false) {
+//         Ok(xpub) => CString::new(xpub).unwrap().into_raw(),
+//         Err(e) => error_as_cstr_prefix(e),
+//     }
+// }
 
 #[no_mangle]
 pub extern "C" fn free_cstring(s: *mut c_char) {
