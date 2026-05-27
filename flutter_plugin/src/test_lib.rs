@@ -1,7 +1,7 @@
 use crate::adaptor_signature::verify_ecdsa_signature;
 use crate::{
     combine_pubkeys_intern, combine_seckeys_intern, create_deterministic_nonce_intern,
-    get_public_key_intern, init_with_entropy, init_with_entropy_intern, keypair_from_sec_key_hex,
+    get_public_key_intern, init_with_entropy_intern, keypair_from_sec_key_hex,
     sign_schnorr_with_nonce_intern, verify_public_key_intern, Lib,
 };
 use bitcoin::hex::FromHex;
@@ -38,16 +38,6 @@ fn test_init_with_entropy_lib() {
 #[test]
 fn test_init_with_entropy_intern() {
     let xpub = init_with_entropy_intern(DUMMY_ENTROPY_STR, DEFAULT_NETWORK).unwrap();
-    assert_eq!(
-            xpub,
-            "tpubDCWivZp6qaqCALCt8MyLqAb3awnWm4hfbBPjdZqirYFXYeZ5YsfbWVaPacULZTGtK1RPBSZ92UWNjnhL4fB9UVrF2FjgW8cgmBjxPBmB4iB"
-        );
-}
-
-#[test]
-fn test_init_with_entropy() {
-    let xpub =
-        init_with_entropy(DUMMY_ENTROPY_STR.to_string(), DEFAULT_NETWORK.to_string()).unwrap();
     assert_eq!(
             xpub,
             "tpubDCWivZp6qaqCALCt8MyLqAb3awnWm4hfbBPjdZqirYFXYeZ5YsfbWVaPacULZTGtK1RPBSZ92UWNjnhL4fB9UVrF2FjgW8cgmBjxPBmB4iB"
