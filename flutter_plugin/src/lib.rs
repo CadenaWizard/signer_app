@@ -5,53 +5,14 @@
 #[cfg(test)]
 mod test_lib;
 
-use dlccryptlib::{get_address, get_xpub};
 #[cfg(feature = "with-pyo3")]
 use dlccryptlib_py;
-
-use std::ffi::CString;
-use std::os::raw::c_char;
 
 // Conditional compilation to exclude PyO3-related code for Android
 #[cfg(feature = "with-pyo3")]
 use pyo3::prelude::*;
 #[cfg(feature = "with-pyo3")]
 use pyo3::wrap_pyfunction;
-
-// ##### Facade functions for C-style-interface invocations
-// Additional C exports for Flutter wallet operations
-#[no_mangle]
-pub extern "C" fn get_xpub_c() -> *mut c_char {
-    match get_xpub() {
-        Ok(xpub) => CString::new(xpub).unwrap().into_raw(),
-        Err(e) => error_as_cstr_prefix(e),
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn get_address_c(index: u32) -> *mut c_char {
-    match get_address(index) {
-        Ok(address) => CString::new(address).unwrap().into_raw(),
-        Err(e) => error_as_cstr_prefix(e),
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn free_cstring(s: *mut c_char) {
-    unsafe {
-        if s.is_null() {
-            return;
-        }
-        let _ = CString::from_raw(s);
-    }
-}
-
-// Return error with an "ERROR: " prefix, as a C string
-fn error_as_cstr_prefix(error: String) -> *mut c_char {
-    CString::new(format!("ERROR: {}", error))
-        .unwrap()
-        .into_raw()
-}
 
 #[cfg(feature = "with-pyo3")]
 #[pymodule]

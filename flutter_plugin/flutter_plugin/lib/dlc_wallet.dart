@@ -212,7 +212,7 @@ class DlcWallet {
   /// Used for: Address generation, verification
   static Future<String> getPublicKey(int index) async {
     _loadLibrary();
-    final result = _getPublicKey(index);
+    final result = _getPublicKey(0, index);
     return _convertCStringAndFree(result);
   }
 
@@ -220,7 +220,7 @@ class DlcWallet {
   /// Used for: Receiving Bitcoin payments
   static Future<String> getAddress(int index) async {
     _loadLibrary();
-    final result = _getAddress(index);
+    final result = _getAddress(0, index);
     return _convertCStringAndFree(result);
   }
 
@@ -254,7 +254,7 @@ class DlcWallet {
       final signerPubkeyPtr = signerPubkey.toNativeUtf8();
 
       try {
-        final result = _signHashEcdsa(hashPtr, signerIndex, signerPubkeyPtr);
+        final result = _signHashEcdsa(hashPtr, 0, signerIndex, signerPubkeyPtr);
 
         return _convertCStringAndFree(result);
       } finally {
@@ -353,6 +353,7 @@ class DlcWallet {
           numCets,
           digitStringTemplatePtr,
           oraclePublicKeyPtr,
+          0,
           signingKeyIndex,
           signingPublicKeyPtr,
           noncesPtr,

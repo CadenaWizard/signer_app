@@ -32,13 +32,13 @@ fn test_init_with_entropy() {
 fn test_get_public_key() {
     let _xpub = init_with_entropy(DUMMY_ENTROPY_STR, DEFAULT_NETWORK).unwrap();
 
-    let pubkey0 = get_public_key(0).unwrap();
+    let pubkey0 = get_public_key(0, 0).unwrap();
     assert_eq!(
         pubkey0.to_string(),
         "0298720ece754e377af1b2716256e63c2e2427ff6ebdc66c2071c43ae80132ca32"
     );
 
-    let pubkey3 = get_public_key(3).unwrap();
+    let pubkey3 = get_public_key(0, 3).unwrap();
     assert_eq!(
         pubkey3.to_string(),
         "03b74dc470965932fc976459096526b08a0f939a95e4b72db8f9aadce18a08a72e"
@@ -49,17 +49,17 @@ fn test_get_public_key() {
 fn test_sign_hash_ecdsa() {
     let _xpub = init_with_entropy(&dummy_entropy(), DEFAULT_NETWORK).unwrap();
 
-    let pubkey3 = get_public_key(3).unwrap();
+    let pubkey3 = get_public_key(0, 3).unwrap();
     assert_eq!(
         pubkey3.to_string(),
         "03b74dc470965932fc976459096526b08a0f939a95e4b72db8f9aadce18a08a72e"
     );
 
     let hash = dummy_bytes32(7);
-    let _sig = sign_hash_ecdsa(&hash, 3, &pubkey3).unwrap();
+    let _sig = sign_hash_ecdsa(&hash, 0, 3, &pubkey3).unwrap();
 
     // negative test, wrong index
-    assert!(sign_hash_ecdsa(&hash, 31, &pubkey3).is_err());
+    assert!(sign_hash_ecdsa(&hash, 0, 31, &pubkey3).is_err());
 }
 
 #[test]

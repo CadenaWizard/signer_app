@@ -1,6 +1,6 @@
 [package]
 name = "dlcplazacryptlib"
-version = "1.0.0"
+version = "2.0.1"
 edition = "2021"
 
 [lib]
@@ -8,8 +8,8 @@ name = "dlcplazacryptlib"
 crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
-dlccryptlib = "=1.0.0"
-dlccryptlib-py = "=1.0.0"
+dlccryptlib = "=2.0.1"
+dlccryptlib-py = "=2.0.1"
 pyo3 = { version = "0.23.1", optional = true }
 
 [features]
