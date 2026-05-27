@@ -1,3 +1,7 @@
+// Copyright (c) 2025-present Cadena Bitcoin
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
 use crate::secret_entropy_storage::SecretEntropyStore;
 
 use bip39::Mnemonic;
