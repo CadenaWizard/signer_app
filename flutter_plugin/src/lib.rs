@@ -347,55 +347,7 @@ fn verify_cet_adaptor_sigs_intern(
     Ok(res.is_ok())
 }
 
-fn create_final_cet_sig_intern(
-    pubkey_str: &str,
-    num_digits: u8,
-    oracle_signatures_str: &str,
-    cet_value_wildcard: &str,
-    cet_sighash_str: &str,
-    adaptor_signature_str: &str,
-) -> Result<String, String> {
-    let pubkey =
-        pubkey_from_hex(pubkey_str).map_err(|e| format!("Failed to parse other pubkey {}", e))?;
-
-    let sigs_split: Vec<_> = oracle_signatures_str.split(" ").collect();
-    let mut sigs = Vec::<SchnorrSignature>::with_capacity(sigs_split.len());
-    for i in 0..sigs_split.len() {
-        let sig_hex = sigs_split[i].trim();
-        if sig_hex.len() > 0 {
-            let sig = schnorr_sig_from_hex(&sig_hex)
-                .map_err(|e| format!("Failed to parse element {} {}", i, e))?;
-            sigs.push(sig);
-        }
-    }
-    if sigs.len() != num_digits as usize {
-        return Err(format!(
-            "Wrong number of signatures {} {}",
-            sigs.len(),
-            num_digits
-        ));
-    }
-
-    let cet_sighash =
-        hash_from_hex(cet_sighash_str).map_err(|e| format!("Failed to parse sighash {}", e))?;
-
-    let adaptor_signature_bin = Vec::from_hex(adaptor_signature_str)
-        .map_err(|e| format!("Failed to parse adaptor sig {}", e))?;
-    let adaptor_signature = EcdsaAdaptorSignature::from_slice(&adaptor_signature_bin)
-        .map_err(|e| format!("Failed to parse adaptor sig {}", e))?;
-    let sig = Lib::create_final_cet_sig(
-        &pubkey,
-        num_digits,
-        &sigs,
-        cet_value_wildcard,
-        &cet_sighash,
-        &adaptor_signature,
-    )?;
-
-    Ok(sig.to_lower_hex_string())
-}
-
-fn create_final_cet_sigs_intern(
+pub fn create_final_cet_sigs_intern(
     signing_key_index: u32,
     signing_pubkey_str: &str,
     other_pubkey_str: &str,
@@ -814,29 +766,6 @@ pub fn verify_cet_adaptor_sigs(
     .map_err(|e| PyErr::new::<PyException, _>(e))
 }
 
-/// Perform final signing of a CET, decrypt a signature when outcome signatures are available.
-/// Return the decrypted signature.
-#[cfg(feature = "with-pyo3")]
-#[pyfunction]
-pub fn create_final_cet_sig(
-    pubkey: String,
-    num_digits: u8,
-    oracle_signatures: String,
-    cet_value_wildcard: String,
-    cet_sighash: String,
-    adaptor_signature: String,
-) -> PyResult<String> {
-    create_final_cet_sig_intern(
-        &pubkey,
-        num_digits,
-        &oracle_signatures,
-        &cet_value_wildcard,
-        &cet_sighash,
-        &adaptor_signature,
-    )
-    .map_err(|e| PyErr::new::<PyException, _>(e))
-}
-
 /// Perform final signing of a CET, create the two signatures when outcome signatures are available.
 /// Return the decrypted signature of the other, and my own signature (newly created).
 #[cfg(feature = "with-pyo3")]
@@ -881,7 +810,6 @@ fn dlcplazacryptlib(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(combine_seckeys, m)?)?;
     m.add_function(wrap_pyfunction!(create_cet_adaptor_sigs, m)?)?;
     m.add_function(wrap_pyfunction!(verify_cet_adaptor_sigs, m)?)?;
-    m.add_function(wrap_pyfunction!(create_final_cet_sig, m)?)?;
     m.add_function(wrap_pyfunction!(create_final_cet_sigs, m)?)?;
     Ok(())
 }
