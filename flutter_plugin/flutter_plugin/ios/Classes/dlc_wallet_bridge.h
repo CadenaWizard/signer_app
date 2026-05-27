@@ -13,7 +13,7 @@ char* create_cet_adaptor_sigs_c(uint8_t num_digits, uint32_t num_cets, const cha
 char* create_deterministic_nonce_c(const char* event_id, uint32_t index);
 char* get_xpub_c(void);
 char* get_address_c(uint32_t index);
-char* init_from_file_c(const char* path, const char* password);
+// char* init_from_file_c(const char* path, const char* password);
 void free_cstring(char* s);
 
 #ifdef __cplusplus
