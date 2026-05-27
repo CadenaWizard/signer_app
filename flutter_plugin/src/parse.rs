@@ -1,3 +1,7 @@
+// Copyright (c) 2025-present Cadena Bitcoin
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
 use bitcoin::hex::FromHex;
 use bitcoin::key::{Keypair, Secp256k1};
 use bitcoin::secp256k1::PublicKey;

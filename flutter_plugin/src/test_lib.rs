@@ -1,3 +1,7 @@
+// Copyright (c) 2025-present Cadena Bitcoin
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
 use crate::adaptor_signature::verify_ecdsa_signature;
 use crate::{
     combine_pubkeys_intern, combine_seckeys_intern, create_deterministic_nonce_intern,

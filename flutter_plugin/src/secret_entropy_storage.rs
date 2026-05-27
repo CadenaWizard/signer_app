@@ -1,3 +1,7 @@
+// Copyright (c) 2025-present Cadena Bitcoin
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
 use crate::network::{network_from_byte, network_from_string};
 
 use bip39::Mnemonic;

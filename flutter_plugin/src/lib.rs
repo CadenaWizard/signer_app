@@ -1,3 +1,7 @@
+// Copyright (c) 2025-present Cadena Bitcoin
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
 mod adaptor_signature;
 mod hd_wallet_storage;
 mod lib_struct;
