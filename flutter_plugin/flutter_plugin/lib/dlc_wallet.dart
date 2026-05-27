@@ -61,7 +61,7 @@ typedef FreeCStringCDart = void Function(Pointer<Utf8> s);
 class DlcWallet {
   static DynamicLibrary? _lib;
   static late final InitWithEntropyCDart _initWithEntropy;
-  static late final InitFromFileCDart _initFromFile;
+  // static late final InitFromFileCDart _initFromFile;
   static late final GetXpubCDart _getXpub;
   static late final GetPublicKeyCDart _getPublicKey;
   static late final GetAddressCDart _getAddress;
@@ -100,9 +100,9 @@ class DlcWallet {
         _initWithEntropy = _lib!
             .lookup<NativeFunction<InitWithEntropyC>>('init_with_entropy_c')
             .asFunction();
-        _initFromFile = _lib!
-            .lookup<NativeFunction<InitFromFileC>>('init_from_file_c')
-            .asFunction();
+        // _initFromFile = _lib!
+        //     .lookup<NativeFunction<InitFromFileC>>('init_from_file_c')
+        //     .asFunction();
         _getXpub =
             _lib!.lookup<NativeFunction<GetXpubC>>('get_xpub_c').asFunction();
         _getPublicKey = _lib!
@@ -185,20 +185,20 @@ class DlcWallet {
 
   /// Initialize wallet from encrypted file
   /// Used for: Loading existing wallets
-  static Future<String> initFromFile(String path, String password) async {
-    _loadLibrary();
+  // static Future<String> initFromFile(String path, String password) async {
+  //   _loadLibrary();
 
-    final pathPtr = path.toNativeUtf8();
-    final passwordPtr = password.toNativeUtf8();
+  //   final pathPtr = path.toNativeUtf8();
+  //   final passwordPtr = password.toNativeUtf8();
 
-    try {
-      final result = _initFromFile(pathPtr, passwordPtr);
-      return _convertCStringAndFree(result);
-    } finally {
-      malloc.free(pathPtr);
-      malloc.free(passwordPtr);
-    }
-  }
+  //   try {
+  //     final result = _initFromFile(pathPtr, passwordPtr);
+  //     return _convertCStringAndFree(result);
+  //   } finally {
+  //     malloc.free(pathPtr);
+  //     malloc.free(passwordPtr);
+  //   }
+  // }
 
   /// Get extended public key
   /// Used for: Wallet identification, sharing public wallet info
@@ -395,58 +395,58 @@ class DlcWallet {
     return addresses;
   }
 
-  /// Create a complete DLC setup
-  /// Used for: Setting up DLC contracts with all required components
-  static Future<Map<String, dynamic>> createDlcSetup({
-    required String eventId,
-    required int keyIndex,
-    required String digitStringTemplate,
-    required String oraclePublicKey,
-    required List<String> intervalWildcards,
-    required List<String> sighashes,
-    required int numDigits,
-  }) async {
-    // Create deterministic nonce
-    final nonce = await createDeterministicNonce(eventId, keyIndex);
+  // /// Create a complete DLC setup
+  // /// Used for: Setting up DLC contracts with all required components
+  // static Future<Map<String, dynamic>> createDlcSetup({
+  //   required String eventId,
+  //   required int keyIndex,
+  //   required String digitStringTemplate,
+  //   required String oraclePublicKey,
+  //   required List<String> intervalWildcards,
+  //   required List<String> sighashes,
+  //   required int numDigits,
+  // }) async {
+  //   // Create deterministic nonce
+  //   final nonce = await createDeterministicNonce(eventId, keyIndex);
 
-    // Get signing public key
-    final signingPublicKey = await getPublicKey(keyIndex);
+  //   // Get signing public key
+  //   final signingPublicKey = await getPublicKey(keyIndex);
 
-    // Create multiple nonces for multi-digit outcomes
-    final nonces = <String>[];
-    for (int i = 0; i < numDigits; i++) {
-      final n = await createDeterministicNonce('$eventId-$i', keyIndex);
-      nonces.add(n['public']!);
-    }
+  //   // Create multiple nonces for multi-digit outcomes
+  //   final nonces = <String>[];
+  //   for (int i = 0; i < numDigits; i++) {
+  //     final n = await createDeterministicNonce('$eventId-$i', keyIndex);
+  //     nonces.add(n['public']!);
+  //   }
 
-    // Create CET adaptor signatures
-    final signatures = await createCetAdaptorSigs(
-      numDigits: numDigits,
-      numCets: intervalWildcards.length,
-      digitStringTemplate: digitStringTemplate,
-      oraclePublicKey: oraclePublicKey,
-      signingKeyIndex: keyIndex,
-      signingPublicKey: signingPublicKey,
-      nonces: nonces,
-      intervalWildcards: intervalWildcards,
-      sighashes: sighashes,
-    );
+  //   // Create CET adaptor signatures
+  //   final signatures = await createCetAdaptorSigs(
+  //     numDigits: numDigits,
+  //     numCets: intervalWildcards.length,
+  //     digitStringTemplate: digitStringTemplate,
+  //     oraclePublicKey: oraclePublicKey,
+  //     signingKeyIndex: keyIndex,
+  //     signingPublicKey: signingPublicKey,
+  //     nonces: nonces,
+  //     intervalWildcards: intervalWildcards,
+  //     sighashes: sighashes,
+  //   );
 
-    return {
-      'eventId': eventId,
-      'keyIndex': keyIndex,
-      'signingPublicKey': signingPublicKey,
-      'nonce': nonce,
-      'nonces': nonces,
-      'signatures': signatures,
-      'setup': {
-        'digitStringTemplate': digitStringTemplate,
-        'oraclePublicKey': oraclePublicKey,
-        'intervalWildcards': intervalWildcards,
-        'sighashes': sighashes,
-      }
-    };
-  }
+  //   return {
+  //     'eventId': eventId,
+  //     'keyIndex': keyIndex,
+  //     'signingPublicKey': signingPublicKey,
+  //     'nonce': nonce,
+  //     'nonces': nonces,
+  //     'signatures': signatures,
+  //     'setup': {
+  //       'digitStringTemplate': digitStringTemplate,
+  //       'oraclePublicKey': oraclePublicKey,
+  //       'intervalWildcards': intervalWildcards,
+  //       'sighashes': sighashes,
+  //     }
+  //   };
+  // }
 
   /// Sign a Bitcoin transaction hash
   /// Used for: Transaction signing in wallet applications
