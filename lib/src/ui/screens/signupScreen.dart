@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 import 'package:signer/services/wallet_service.dart';
@@ -29,6 +30,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final RxString confirmPasswordError = ''.obs;
   final storage = FlutterSecureStorage();
 
+  String? _validatePassword(String password) {
+    const minLength = 3;
+    const maxLength = 128;
+    final hasLower = RegExp(r'[a-z]').hasMatch(password);
+    final hasUpper = RegExp(r'[A-Z]').hasMatch(password);
+    final hasDigit = RegExp(r'\d').hasMatch(password);
+    final hasWhitespace = RegExp(r'\s').hasMatch(password);
+
+    if (password.isEmpty) return "Please enter a password.";
+    if (password.length < minLength) return "Password must be at least $minLength characters.";
+    if (password.length > maxLength) return "Password must be at most $maxLength characters.";
+    if (!hasLower) return "Password must include at least one lowercase letter.";
+    if (!hasUpper) return "Password must include at least one uppercase letter.";
+    if (!hasDigit) return "Password must include at least one digit.";
+    if (hasWhitespace) return "Password cannot contain whitespace.";
+    return null; // valid
+  }
+
   // bool isStrongPassword(String password) {
   //   final regex = RegExp(
   //     r'^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[!@#\$&*~^%()_+=|<>?{}\[\]-]).{8,}$',
@@ -47,6 +66,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       () => Scaffold(
         backgroundColor: primaryBackgroundColor.value,
         body: SafeArea(
+          bottom: false,
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
             child: Column(
@@ -97,6 +117,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   controller: passwordController,
                   isPassword: true,
                   obscureText: true,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.deny(RegExp(r'\\s')),
+                  ],
                 ),
                 if (passwordError.value.isNotEmpty)
                   Padding(
@@ -114,6 +137,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   controller: confirmPasswordController,
                   isPassword: true,
                   obscureText: true,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.deny(RegExp(r'\\s')),
+                  ],
                 ),
                 if (confirmPasswordError.value.isNotEmpty)
                   Padding(
@@ -141,10 +167,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         confirmEmailController.text.trim().isNotEmpty;
                     bool doEmailsMatch = emailController.text.trim() ==
                         confirmEmailController.text.trim();
-                    bool isPasswordEntered =
-                        passwordController.text.trim().isNotEmpty;
-                    bool isConfirmPasswordEntered =
-                        confirmPasswordController.text.trim().isNotEmpty;
+                    final password = passwordController.text.trim();
+                    final confirmPassword = confirmPasswordController.text.trim();
+                    final passwordValidationError = _validatePassword(password);
+                    final isConfirmPasswordEntered = confirmPassword.isNotEmpty;
                     bool doPasswordsMatch = passwordController.text ==
                         confirmPasswordController.text;
 
@@ -162,11 +188,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       confirmEmailError.value = "";
                     }
 
-                    if (!isPasswordEntered) {
-                      passwordError.value = "Please enter a password.";
-                    } else {
-                      passwordError.value = "";
-                    }
+                    passwordError.value = passwordValidationError ?? "";
+
                     if (!isConfirmPasswordEntered) {
                       confirmPasswordError.value =
                           "Please confirm your password.";
@@ -178,7 +201,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                     if (isEmailValid &&
                         isConfirmEmailEntered &&
-                        isPasswordEntered &&
+                        passwordValidationError == null &&
                         confirmEmailError.value == "" &&
                         doPasswordsMatch) {
                       // final mnemonic = await generateMeneMonic();
@@ -210,7 +233,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   },
                 ),
 
-                const SizedBox(height: 16),
+                SizedBox(height: MediaQuery.of(context).viewPadding.bottom + 16),
 /*
                 PrimaryButton(
                   text: "Already have an account?",

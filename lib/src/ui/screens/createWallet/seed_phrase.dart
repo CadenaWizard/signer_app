@@ -45,49 +45,53 @@ class _SeedPhraseScreenState extends State<SeedPhraseScreen> {
         title: Text("Your Seed Phrase", style: TextStyle(color: primaryTextColor.value, fontWeight: FontWeight.w600)),
         iconTheme: IconThemeData(color: primaryTextColor.value),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          children: [
-            if (_mnemonic.isNotEmpty)
-              Expanded(
-                child: GridView.builder(
-                  itemCount: words.length,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 2.5),
-                  itemBuilder: (_, index) {
-                    return Container(
-                      decoration: BoxDecoration(
-                        color: cardBgColor.value,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: dividerColor.value),
-                        boxShadow: [BoxShadow(color: surfaceColor.value.withOpacity(0.4), blurRadius: 6, offset: const Offset(0, 2))],
-                      ),
-                      child: Center(child: Text('${index + 1}. ${words[index]}', style: TextStyle(color: primaryTextColor.value, fontWeight: FontWeight.w600, fontSize: 14))),
-                    );
-                  },
+      body: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            children: [
+              if (_mnemonic.isNotEmpty)
+                Expanded(
+                  child: GridView.builder(
+                    itemCount: words.length,
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 2.5),
+                    itemBuilder: (_, index) {
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: cardBgColor.value,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: dividerColor.value),
+                          boxShadow: [BoxShadow(color: surfaceColor.value.withOpacity(0.4), blurRadius: 6, offset: const Offset(0, 2))],
+                        ),
+                        child: Center(child: Text('${index + 1}. ${words[index]}', style: TextStyle(color: primaryTextColor.value, fontWeight: FontWeight.w600, fontSize: 14))),
+                      );
+                    },
+                  ),
                 ),
+              const SizedBox(height: 20),
+              PrimaryButton(
+                text: "Generate New Seed",
+                onTap: () async {
+                  await resetMnemonic();
+                  print(":brain: Mnemonic:$_mnemonic");
+                },
               ),
-            const SizedBox(height: 20),
-            PrimaryButton(
-              text: "Generate New Seed",
-              onTap: () async {
-                await resetMnemonic();
-                print(":brain: Mnemonic:$_mnemonic");
-              },
-            ),
-            const SizedBox(height: 20),
-            PrimaryButton(
-              text: "Verify Seed Phrase",
-              onTap: () {
-                print(":brain: Mnemonic:$_mnemonic");
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => ConfirmSeedPhraseScreen(mnemonic: _mnemonic, email: widget.email, password: widget.password, fromPage: widget.fromPage)),
-                );
-              },
-            ),
-            const SizedBox(height: 20),
-          ],
+              const SizedBox(height: 20),
+              PrimaryButton(
+                text: "Verify Seed Phrase",
+                onTap: () {
+                  print(":brain: Mnemonic:$_mnemonic");
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => ConfirmSeedPhraseScreen(mnemonic: _mnemonic, email: widget.email, password: widget.password, fromPage: widget.fromPage)),
+                  );
+                },
+              ),
+              const SizedBox(height: 20),
+              SizedBox(height: MediaQuery.of(context).viewPadding.bottom + 16),
+            ],
+          ),
         ),
       ),
     );

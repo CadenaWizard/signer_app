@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:signer/services/app_minimize_service.dart';
 import 'package:signer/services/auto_signing_service.dart';
@@ -9,7 +10,14 @@ import 'package:signer/src/ui/screens/splashScreen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Required for plugin channels
-  
+
+  // Edge-to-edge: transparent system bars so scaffold background extends behind them
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    systemNavigationBarColor: Colors.transparent,
+    systemNavigationBarContrastEnforced: false,
+  ));
+
   // Initialize secure storage service first to handle data persistence
   final secureStorageService = SecureStorageService();
   await secureStorageService.initialize();

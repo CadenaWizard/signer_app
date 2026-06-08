@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:bip39/bip39.dart' as bip39;
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_idensic_mobile_sdk_plugin/flutter_idensic_mobile_sdk_plugin.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:signer/services/app_minimize_service.dart';
@@ -33,6 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final AutoSigningService autoSigningService = Get.find<AutoSigningService>();
 
   final _storage = const FlutterSecureStorage();
+  bool _isKycLaunching = false;
   Future<String?> getMnemonic(String email) async {
     final _storage = const FlutterSecureStorage();
 
@@ -66,6 +68,171 @@ class _HomeScreenState extends State<HomeScreen> {
 
   var qrText = ''.obs;
   Timer? _profileTimer;
+
+  Future<String> _getLocalEmail() async {
+    return await StorageService.getLoggedInEmail() ?? '';
+  }
+
+  String _kycDisplayText(String? status) {
+    final s = (status ?? '').trim().toLowerCase();
+    if (s.isEmpty || s == 'null') return 'Not started';
+    if (s == 'pending' ||
+        s == 'in_progress' ||
+        s == 'in progress' ||
+        s == 'provider_pending') {
+      return 'In progress';
+    }
+    if (s == 'rejected' || s == 'finally_rejected' || s == 'finallyrejected') return 'Rejected';
+    if (s == 'approved' || s == 'completed' || s == 'verified') return 'Verified';
+    return status ?? 'Unknown';
+  }
+
+  Color _kycColor(String? status) {
+    final s = (status ?? '').trim().toLowerCase();
+    if (s.isEmpty || s == 'null') return Colors.orange;
+    if (s == 'pending' ||
+        s == 'in_progress' ||
+        s == 'in progress' ||
+        s == 'provider_pending') {
+      return Colors.blue;
+    }
+    if (s == 'rejected' || s == 'finally_rejected' || s == 'finallyrejected') return Colors.red;
+    if (s == 'approved' || s == 'completed' || s == 'verified') return Colors.green;
+    return Colors.grey;
+  }
+
+  IconData _kycIcon(String? status) {
+    final s = (status ?? '').trim().toLowerCase();
+    if (s.isEmpty || s == 'null') return Icons.assignment_outlined;
+    if (s == 'pending' ||
+        s == 'in_progress' ||
+        s == 'in progress' ||
+        s == 'provider_pending') {
+      return Icons.hourglass_top_outlined;
+    }
+    if (s == 'rejected' || s == 'finally_rejected' || s == 'finallyrejected') return Icons.error_outline;
+    if (s == 'approved' || s == 'completed' || s == 'verified') return Icons.verified_outlined;
+    return Icons.help_outline;
+  }
+
+  bool _kycIsActionable(String? status) {
+    final s = (status ?? '').trim().toLowerCase();
+    return s.isEmpty ||
+        s == 'null' ||
+        s == 'rejected' ||
+        s == 'finally_rejected' ||
+        s == 'finallyrejected';
+  }
+
+  bool _kycIsInProgress(String? status) {
+    final s = (status ?? '').trim().toLowerCase();
+    return s == 'pending' ||
+        s == 'in_progress' ||
+        s == 'in progress' ||
+        s == 'provider_pending';
+  }
+
+  bool _kycIsVerified(String? status) {
+    final s = (status ?? '').trim().toLowerCase();
+    return s == 'approved' || s == 'completed' || s == 'verified';
+  }
+
+  double _kycNowTs() =>
+      DateTime.now().toUtc().millisecondsSinceEpoch / 1000.0;
+
+  Future<void> _reportKycEvent(String event, {String? details}) async {
+    await ApiService().kycAppStatus(
+      event: event,
+      eventTs: _kycNowTs(),
+      details: details,
+    );
+  }
+
+  /// Maps Sumsub SDK result to backend lifecycle event names.
+  Future<void> _reportKycSdkFinished(SNSMobileSDKResult result) {
+    if (result.success) {
+      return _reportKycEvent('sdk_completed', details: result.toString());
+    }
+
+    switch (result.status) {
+      case SNSMobileSDKStatus.Initial:
+        return _reportKycEvent('sdk_cancelled', details: result.toString());
+      case SNSMobileSDKStatus.Incomplete:
+      case SNSMobileSDKStatus.Pending:
+        return _reportKycEvent('sdk_cancelled', details: result.toString());
+      case SNSMobileSDKStatus.Failed:
+      case SNSMobileSDKStatus.FinallyRejected:
+        return _reportKycEvent('sdk_error', details: result.toString());
+      default:
+        return _reportKycEvent('sdk_completed', details: result.toString());
+    }
+  }
+
+  Future<String> _fetchNewKycAccessToken() async {
+    final payload = await ApiService().kycStartApp();
+    final token = payload?['access_token']?.toString();
+    if (token == null || token.isEmpty) {
+      throw Exception('Failed to refresh KYC access token');
+    }
+    return token;
+  }
+
+  Future<void> _startKycFlow() async {
+    if (_isKycLaunching) return;
+    setState(() => _isKycLaunching = true);
+    try {
+      await _reportKycEvent('screen_opened');
+
+      final payload = await ApiService().kycStartApp();
+      final token = payload?['access_token']?.toString();
+
+      if (token == null || token.isEmpty) {
+        await _reportKycEvent('sdk_error', details: 'failed_to_fetch_token');
+        Get.snackbar(
+          'KYC',
+          'Failed to start KYC. Please try again.',
+          backgroundColor: Colors.red.withOpacity(0.9),
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
+        );
+        return;
+      }
+
+      await _reportKycEvent('sdk_started');
+
+      final sdk = SNSMobileSDK.init(
+        token,
+        () async => await _fetchNewKycAccessToken(),
+      ).withDebug(false).build();
+
+      try {
+        final result = await sdk.launch();
+        print('KYC SDK result: $result');
+        await _reportKycSdkFinished(result);
+      } catch (e) {
+        await _reportKycEvent('sdk_error', details: e.toString());
+        Get.snackbar(
+          'KYC',
+          'An error occurred while launching KYC: $e',
+          backgroundColor: Colors.red.withOpacity(0.9),
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
+        );
+      }
+    } catch (e) {
+      print('Error launching KYC: $e');
+      Get.snackbar(
+        'KYC',
+        'An error occurred while launching KYC: $e',
+        backgroundColor: Colors.red.withOpacity(0.9),
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } finally {
+      await ApiService().getUserProfile();
+      if (mounted) setState(() => _isKycLaunching = false);
+    }
+  }
 
   @override
   void initState() {
@@ -164,30 +331,152 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  /// Complete verification process as per requirements
+  /// Complete verification process following new decision tree
+  /// Condition conn -> A -> B -> C -> D
   Future<void> _performVerificationProcess(String email, String password) async {
     try {
-      // STEP 1: Try to register new user first
-      print("Step 1: Attempting to register new user...");
-      final registerResult = await ApiService().registerNewUser(
+      // ========================================
+      // CONDITION conn: Check server status
+      // ========================================
+      print("Condition conn: Checking server status...");
+      final serverStatus = await ApiService().checkServerStatus();
+
+      if (serverStatus != 'OK') {
+        // Server not reachable - HALT
+        print("Server is not accessible - HALT");
+        appController.setServerReachable(false);
+        appController.updateButtonVisibility(
+          isServerReachable: false,
+          hasRemoteXpub: false,
+          xpubMatches: false,
+          isHaltState: true,
+        );
+        _showServerUnreachableMessage();
+        appController.userProfileObject.value = UserProfileModel();
+        // Update status to show "CadenaBitcoin out of reach"
+        return;
+      }
+
+      appController.setServerReachable(true);
+      print("Server is reachable - proceeding to Condition A");
+
+      // ========================================
+      // CONDITION A: Check if email in DB and password matches
+      // ========================================
+      print("Condition A: Attempting login...");
+      final loginResult = await ApiService().login(
         email: email,
         pass: password,
       );
 
-      if (registerResult == 'OK') {
-        // Registration successful - user is new (auth_code = 0)
-        print("Registration successful - user is new");
-        _showEmailVerificationDialog();
-        return;
-      } else if (registerResult == 'USER_EXISTS' || registerResult == 'USER_CONFIRMED') {
-        // User already exists (confirmed or not) - proceed to login
-        print("User already exists - proceeding to login...");
-        await _performLoginProcess(email, password);
-      } else {
-        // Registration failed for other reasons
-        print("Registration failed: $registerResult");
-        _showLoginFailureDialog();
+      if (loginResult != 'OK') {
+        // Login failed - try registration
+        print("Login failed - attempting registration...");
+        final registerResult = await ApiService().registerNewUser(
+          email: email,
+          pass: password,
+        );
+
+        // Registration attempt made (we don't know the exact outcome)
+        print("Registration attempt completed - showing message");
+        _showRegistrationAttemptMessage(email);
+        appController.updateButtonVisibility(
+          isServerReachable: true,
+          hasRemoteXpub: false,
+          xpubMatches: false,
+          isHaltState: true,
+        );
+        appController.userProfileObject.value = UserProfileModel();
+        return; // HALT
       }
+
+      print("Condition A passed - login successful, proceeding to Condition B");
+
+      // ========================================
+      // CONDITION B: Password match (already validated in A)
+      // ========================================
+      print("Condition B: Password match confirmed (validated in Condition A)");
+
+      // ========================================
+      // CONDITION C: Check if remote XPUB exists
+      // ========================================
+      print("Condition C: Checking user profile for remote XPUB...");
+      final profileResult = await ApiService().getUserProfile();
+
+      if (profileResult != 'OK') {
+        print("Failed to get user profile");
+        _showLoginFailureDialog();
+        return;
+      }
+
+      final authCode = appController.userProfileObject.value.payload?.authCode ?? 999;
+      final remoteXpub = appController.userProfileObject.value.payload?.xpub;
+      final hasRemoteXpub = remoteXpub != null && remoteXpub.isNotEmpty;
+
+      print("Auth code: $authCode, Has remote XPUB: $hasRemoteXpub");
+
+      // Check auth_code pattern: ..xx0x means bit-1 not set (not registered)
+      // Check if bit-1 is set: auth_code & 2 != 0
+      final isRegistered = (authCode & 2) != 0;
+
+      if (!isRegistered) {
+        // User not registered (auth_code = ..xx0x) - HALT
+        print("User not registered (auth_code bit-1 not set) - HALT");
+        _showRegistrationRequiredMessage();
+        appController.updateButtonVisibility(
+          isServerReachable: true,
+          hasRemoteXpub: false,
+          xpubMatches: false,
+          isHaltState: true,
+        );
+        return;
+      }
+
+      if (!hasRemoteXpub) {
+        // Condition C: No remote XPUB (auth_code = ..x01x)
+        print("Condition C: No remote XPUB - user needs to pair device");
+        _showPairingRequiredMessage();
+        appController.updateButtonVisibility(
+          isServerReachable: true,
+          hasRemoteXpub: false,
+          xpubMatches: false,
+          isHaltState: false,
+        );
+        return; // HALT but buttons are ON
+      }
+
+      print("Condition C passed - remote XPUB exists, proceeding to Condition D");
+
+      // ========================================
+      // CONDITION D: Compare local vs remote XPUB
+      // ========================================
+      print("Condition D: Comparing local vs remote XPUB...");
+      final xpubMatches = await ApiService().compareXpubWithServer();
+
+      if (!xpubMatches) {
+        // Condition !D: XPUB mismatch
+        print("Condition !D: XPUB mismatch detected");
+        appController.setXpubMismatchDetected();
+        _showXpubMismatchMessage();
+        appController.updateButtonVisibility(
+          isServerReachable: true,
+          hasRemoteXpub: true,
+          xpubMatches: false,
+          isHaltState: false,
+        );
+        return; // HALT
+      }
+
+      // Condition D: XPUB matches - fully paired
+      print("Condition D: XPUB matches - user is fully paired");
+      appController.clearXpubMismatchDetected();
+      _showFullyPairedMessage();
+      appController.updateButtonVisibility(
+        isServerReachable: true,
+        hasRemoteXpub: true,
+        xpubMatches: true,
+        isHaltState: false,
+      );
     } catch (e) {
       print("Error in verification process: $e");
       _showLoginFailureDialog();
@@ -203,7 +492,7 @@ class _HomeScreenState extends State<HomeScreen> {
         email: email,
         pass: password,
       );
-
+      print("Step 2: Attempting login...${loginResult}");
       if (loginResult == 'OK') {
         print("Login successful");
 
@@ -304,6 +593,78 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// Show server unreachable message (Condition !conn)
+  void _showServerUnreachableMessage() {
+    Get.snackbar(
+      'Server Unreachable',
+      'Server is not accessible',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.red.withOpacity(0.9),
+      colorText: Colors.white,
+      duration: Duration(seconds: 5),
+    );
+  }
+
+  /// Show registration attempt message (Condition !A)
+  void _showRegistrationAttemptMessage(String email) {
+    Get.snackbar(
+      'Registration Requested',
+      'A registration attempt was requested. CadenaBitcoin cannot be accessed with the credentials saved in your APP. You will receive an email with instructions shortly.',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.red.withOpacity(0.9),
+      colorText: Colors.white,
+      duration: Duration(seconds: 8),
+    );
+  }
+
+  /// Show registration required message (auth_code = ..xx0x)
+  void _showRegistrationRequiredMessage() {
+    Get.snackbar(
+      'Registration Required',
+      'User is not registered. Please check your email to complete registration.',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.red.withOpacity(0.9),
+      colorText: Colors.white,
+      duration: Duration(seconds: 5),
+    );
+  }
+
+  /// Show pairing required message (Condition C - no remote XPUB)
+  void _showPairingRequiredMessage() {
+    Get.snackbar(
+      'Pairing Required',
+      'Please Pair your device with Cadena. Push the Pair button and follow instructions!',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.orange.withOpacity(0.9),
+      colorText: Colors.white,
+      duration: Duration(seconds: 6),
+    );
+  }
+
+  /// Show XPUB mismatch message (Condition !D)
+  void _showXpubMismatchMessage() {
+    Get.snackbar(
+      'XPUB Mismatch',
+      'The XPUB derived from the SeedPhrase does not match the one stored with Cadena online',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.red.withOpacity(0.9),
+      colorText: Colors.white,
+      duration: Duration(seconds: 6),
+    );
+  }
+
+  /// Show fully paired message (Condition D)
+  void _showFullyPairedMessage() {
+    Get.snackbar(
+      'Fully Paired',
+      'You are paired with CadenaBitcoin',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.green.withOpacity(0.9),
+      colorText: Colors.white,
+      duration: Duration(seconds: 3),
+    );
+  }
+
   void _showXpubMismatchDialog() {
     Get.dialog(
       AlertDialog(
@@ -382,7 +743,6 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       // Set xpub mismatch flag to block API calls
       appController.setXpubMismatchDetected();
-
       // Clear all user data from StorageService
       await StorageService.clearAllUsers();
 
@@ -477,6 +837,7 @@ class _HomeScreenState extends State<HomeScreen> {
       () => Scaffold(
         backgroundColor: primaryBackgroundColor.value,
         body: SafeArea(
+          bottom: false,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12.0),
             child: ListView(
@@ -544,13 +905,57 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (AppController.USE_TESTNET) const SizedBox(height: 8),
                 if (AppController.USE_TESTNET) _buildSignetBanner(),
                 const SizedBox(height: 16),
-                // Status Card
-                Obx(() => _buildInfoCard(
-                      title: "Signer Status",
-                      value: appController.getUserStatus(),
-                      icon: appController.getStatusIcon(),
-                      valueColor: appController.getStatusColor(),
-                    )),
+                // Status Card with email (profile email, fallback to local)
+                FutureBuilder<String>(
+                  future: _getLocalEmail(),
+                  builder: (context, snapshot) {
+                    final localEmail = snapshot.data ?? '';
+                    final profileEmail = appController.userProfileObject.value.payload?.email ?? '';
+                    final displayEmail = profileEmail.isNotEmpty ? profileEmail : localEmail;
+
+                    return Obx(() => _buildInfoCard(
+                          title: "User Status ${displayEmail}",
+                          value: appController.getUserStatus(),
+                          icon: appController.getStatusIcon(),
+                          valueColor: appController.getStatusColor(),
+                        ));
+                  },
+                ),
+                const SizedBox(height: 16),
+                // KYC Status Card (chip opens Sumsub when actionable)
+                Obx(() {
+                  final kycStatus = appController.userProfileObject.value.payload?.kycStatus;
+                  final display = _kycDisplayText(kycStatus);
+                  final actionable = _kycIsActionable(kycStatus) &&
+                      !_kycIsVerified(kycStatus) &&
+                      !_kycIsInProgress(kycStatus);
+
+                  return _buildInfoCard(
+                    title: "KYC Status",
+                    value: _isKycLaunching ? "Opening..." : display,
+                    icon: _kycIcon(kycStatus),
+                    valueColor: _kycColor(kycStatus),
+                    trailing: (actionable && !_isKycLaunching)
+                        ? GestureDetector(
+                            onTap: _startKycFlow,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: primaryColor.value.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child:  Text('Verify',style: AppTextStyles.caption.copyWith(
+                                color: subTextColor.value,
+                              ),),
+                            ),
+                          )
+                        : null,
+                  );
+                }),
+
                 const SizedBox(height: 16),
 
                 // Mode Card
@@ -728,7 +1133,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                             if (result == "OK") {
                                               Get.snackbar(
                                                 'Success',
-                                                'User Upgrade Pubx successfully',
+                                                'User XPub upgraded successfully.',
                                                 snackPosition: SnackPosition.BOTTOM,
                                                 backgroundColor: Colors.green.withOpacity(0.9),
                                                 colorText: Colors.white,
@@ -775,7 +1180,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Obx(() => appController.showVerifyButton.value
                     ? _buildActionButton(
                         icon: Icons.refresh,
-                        label: "Verify",
+                        label: "Please Verify",
                         onTap: () {
                           _verifyUser().then((_) {
                             initWallet();
@@ -785,8 +1190,18 @@ class _HomeScreenState extends State<HomeScreen> {
                         },
                       )
                     : SizedBox.shrink()),
+                Obx(() => appController.showResetButton.value
+                    ? _buildActionButton(
+                        icon: Icons.restart_alt,
+                        label: "Reset",
+                        onTap: () async {
+                          await _wipeAllData();
+                          Get.offAll(() => SplashScreen());
+                        },
+                      )
+                    : SizedBox.shrink()),
                 Obx(() => SizedBox(
-                      height: appController.showVerifyButton.value ? 60 : 0,
+                      height: (appController.showVerifyButton.value || appController.showResetButton.value) ? 60 : 0,
                     )),
                 if (Platform.isAndroid)
                   _buildActionButton(
@@ -795,6 +1210,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       onTap: () {
                         AppMinimizeService.to.minimizeApp();
                       }),
+                SizedBox(height: MediaQuery.of(context).viewPadding.bottom + 16),
               ],
             ),
           ),
@@ -855,6 +1271,7 @@ class _HomeScreenState extends State<HomeScreen> {
     required String value,
     required IconData icon,
     Color? valueColor,
+    Widget? trailing,
   }) {
     return Container(
       padding: const EdgeInsets.all(12),
@@ -889,6 +1306,10 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
+          if (trailing != null) ...[
+            const SizedBox(width: 12),
+            trailing,
+          ],
         ],
       ),
     );

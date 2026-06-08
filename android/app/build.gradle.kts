@@ -46,4 +46,6 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    // add dependency to enable Device Intelligence
+    implementation("com.sumsub.sns:idensic-mobile-sdk-fisherman:1.42.0")
 }

@@ -15,13 +15,11 @@ class ApiService {
   final appController = getX.Get.find<AppController>();
 
   Future<String> login({String? email, String? pass}) async {
-    // Check if API calls should be blocked due to xpub mismatch
+    // Allow login even if XPUB mismatch flag is set; only warn so the flow can recover.
     if (appController.shouldBlockApiCalls()) {
-      print("API call blocked due to xpub mismatch - data reset required");
-      appController.loginLoader.value = false;
-      return 'BLOCKED_XPUB_MISMATCH';
+      print("XPUB mismatch flag set – allowing login so user can re-authenticate.");
     }
-    
+
     appController.loginLoader.value = true;
     SharedPref sharedPref = SharedPref();
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -48,10 +46,9 @@ class ApiService {
     if (response != null &&
         response.statusCode == 200 &&
         response.data != null) {
-      // Clear xpub mismatch flag BEFORE saving token to ensure getUserProfile works
+      // Clear XPUB mismatch flag BEFORE saving token so the rest of the app can call APIs again.
       appController.clearXpubMismatchDetected();
       saveToken(response.data['access_token']);
-      // appController.user.value = user;
       return 'OK';
     } else {
       return 'FAILED';
@@ -69,49 +66,97 @@ class ApiService {
     await getUserProfile();
   }
 
-  /// Register new user - returns 'OK' if successful, 'FAILED' if user already exists
+  /// Possible return values:
+  /// 'OK'               -> Registration created (email confirmation required) OR generic success from API.
+  /// 'USER_EXISTS'      -> Email already exists (backend indicated existing record via initiated=false)
+  /// 'USER_CONFIRMED'   -> Registration already confirmed and enum-safe mode is off (backend returned 400 for already confirmed)
+  /// 'PASSWORD_INVALID' -> Password policy violation (400)
+  /// 'FAILED'           -> Any other error
   Future<String> registerNewUser({String? email, String? pass}) async {
     appController.loginLoader.value = true;
-    
+
     final data = {
       'email_address': email ?? '',
       'password': pass ?? '',
     };
 
-    final response = await DataService().genericDioPostCall(
-      '/auth/new-user',
-      data: data,
-      isFormUrlEncoded: false,
-    );
+    try {
+      final response = await DataService().genericDioPostCall(
+        '/auth/new-user',
+        data: data,
+        isFormUrlEncoded: false,
+      );
 
-    print("Register response: ${response?.data}");
-    print("Status Code: ${response?.statusCode}");
+      print("Register response: ${response?.data}");
+      print("Status Code: ${response?.statusCode}");
 
-    appController.loginLoader.value = false;
+      if (response == null) return 'FAILED';
+      if (response.statusCode == 200) {
+        final respData = response.data ?? {};
+        final payload = respData['payload'];
 
-    if (response != null && response.statusCode == 200) {
-      // Check if the response contains the success message
-      final message = response.data?['message'] ?? '';
-      if (message.contains('confirmation link will be sent')) {
-        // Registration successful - user is new (auth_code = 0)
+        // 1) Prefer the temporary/early 'initiated' boolean if present
+        if (payload is Map && payload.containsKey('initiated')) {
+          final initiated = payload['initiated'];
+          if (initiated == true) {
+            // New user created / email confirmation will be sent
+            return 'OK';
+          } else {
+            // initiated == false => user exists (either confirmed or unconfirmed)
+            return 'USER_EXISTS';
+          }
+        }
+
+        // 2) Fallback to canonical API shape: payload.ok == true (generic success)
+        if (payload is Map && payload['ok'] == true) {
+          // The long-term API only gives a generic success response:
+          // { "payload": {"ok": true}, "message": "...", "timestamp": ... }
+          // We can't reliably tell whether it's a create/continue/no-op from this alone.
+          // Return 'OK' to denote the call succeeded — the UI can decide whether to proceed to sign-in
+          // or to show a "check your email" screen. If you want stricter behavior, query auth status next.
+          return 'OK';
+        }
+
+        // If payload missing or in unexpected shape, consider it a generic success per spec
         return 'OK';
-      } else {
+      }
+
+      // -------------------------
+      // 400 Bad Request handling
+      // -------------------------
+      if (response.statusCode == 400) {
+        final respData = response.data ?? {};
+        final message = (respData['message'] ?? '').toString();
+        final detail = (respData['detail'] ?? '').toString();
+
+        // Password policy violation (explicit per spec)
+        if (message.contains('Password does not meet') || detail.contains('Password does not meet')) {
+          return 'PASSWORD_INVALID';
+        }
+
+        // The spec: "Registration already confirmed and enumeration-safe mode is off." -> 400
+        // Try to detect that case from 'message' or 'detail' if backend provides it.
+        if (detail.toLowerCase().contains('already confirmed') ||
+            message.toLowerCase().contains('already confirmed')) {
+          return 'USER_CONFIRMED';
+        }
+
+        // Generic 400 fallback for user-exists / other validation
         return 'FAILED';
       }
-    } else if (response != null && response.statusCode == 400) {
-      // Check the error message to determine the specific case
-      final detail = response.data?['detail'] ?? '';
-      if (detail.contains('already exists and is confirmed')) {
-        // User already exists and is confirmed - proceed to login
-        return 'USER_CONFIRMED';
-      } else {
-        // User exists but not confirmed - proceed to login
-        return 'USER_EXISTS';
-      }
-    } else {
+
+      // Any other status codes -> failure
       return 'FAILED';
+    } catch (e, st) {
+      // Log and surface failure
+      print('registerNewUser exception: $e\n$st');
+      return 'FAILED';
+    } finally {
+      // Ensure loader is reset
+      appController.loginLoader.value = false;
     }
   }
+
 
   // Future forgotPassword({
   //   String? email,
@@ -204,9 +249,27 @@ class ApiService {
         response.data,
       );
       
-      // Update button states based on authCode
+      // Update button visibility using new decision tree logic
       final authCode = appController.userProfileObject.value.payload?.authCode ?? 999;
-      _updateButtonStatesBasedOnAuthCode(authCode);
+      final remoteXpub = appController.userProfileObject.value.payload?.xpub;
+      final hasRemoteXpub = remoteXpub != null && remoteXpub.isNotEmpty;
+      
+      // Check if user is registered (bit-1 set)
+      final isRegistered = (authCode & 2) != 0;
+      
+      bool xpubMatches = false;
+      if (hasRemoteXpub) {
+        // Compare XPUB if remote XPUB exists
+        xpubMatches = await compareXpubWithServer();
+      }
+      
+      // Update button visibility based on decision tree
+      appController.updateButtonVisibility(
+        isServerReachable: appController.serverReachable.value,
+        hasRemoteXpub: hasRemoteXpub && isRegistered,
+        xpubMatches: xpubMatches,
+        isHaltState: !isRegistered,
+      );
       
       appController.getUserProfileLoader.value = false;
       return 'OK';
@@ -585,6 +648,105 @@ class ApiService {
     } catch (e) {
       print("Exception in getAppVersion: $e");
       return 'FAILED';
+    }
+  }
+
+  /// Check if server is reachable
+  /// Returns 'OK' if server is accessible, 'FAILED' if not
+  Future<String> checkServerStatus() async {
+    try {
+      print("ApiService: Checking server status...");
+      
+      // This endpoint doesn't require authentication
+      final response = await DataService().genericDioGetCall(
+        '/dlca/v0/server-status',
+      );
+
+      if (response != null && response.statusCode == 200) {
+        print("ApiService: Server is reachable");
+        return 'OK';
+      } else {
+        print("ApiService: Server is not reachable - response: $response");
+        return 'FAILED';
+      }
+    } catch (e) {
+      print("Exception in checkServerStatus: $e");
+      return 'FAILED';
+    }
+  }
+
+  /// Start/continue KYC and fetch Sumsub SDK access token.
+  /// Calls POST /auth/kyc-start-app (empty body).
+  /// Returns a map with keys: access_token, kyc_status, ttl_in_secs, provider, level_name.
+  Future<Map<String, dynamic>?> kycStartApp() async {
+    try {
+      // Check if API calls should be blocked due to xpub mismatch
+      if (appController.shouldBlockApiCalls()) {
+        print("API call blocked due to xpub mismatch - data reset required");
+        return null;
+      }
+
+      final response = await DataService().genericDioPostCall(
+        '/auth/kyc-start-app',
+        data: {},
+        isFormUrlEncoded: false,
+      );
+
+      if (response != null && response.statusCode == 200 && response.data != null) {
+        final respData = response.data as Map<String, dynamic>;
+        final payload = respData['payload'];
+        if (payload is Map<String, dynamic>) {
+          return payload;
+        }
+      }
+
+      print("ApiService: Failed to start KYC - response: ${response?.statusCode}");
+      return null;
+    } catch (e) {
+      print("Exception in kycStartApp: $e");
+      return null;
+    }
+  }
+
+  /// Report app-side KYC lifecycle to backend (POST /auth/kyc-app-status).
+  /// Body: { event, event_ts, details? }. Returns true on HTTP 200.
+  Future<bool> kycAppStatus({
+    required String event,
+    double? eventTs,
+    String? details,
+  }) async {
+    if (appController.shouldBlockApiCalls()) {
+      print("API call blocked due to xpub mismatch - kycAppStatus skipped");
+      return false;
+    }
+
+    final ts = eventTs ??
+        (DateTime.now().toUtc().millisecondsSinceEpoch / 1000.0);
+
+    final data = <String, dynamic>{
+      'event': event,
+      'event_ts': ts,
+      if (details != null) 'details': details,
+    };
+
+    try {
+      final response = await DataService().genericDioPostCall(
+        '/auth/kyc-app-status',
+        data: data,
+        isFormUrlEncoded: false,
+      );
+
+      if (response != null && response.statusCode == 200) {
+        return true;
+      }
+
+      print(
+        "ApiService: kycAppStatus non-success - status: ${response?.statusCode}, data: ${response?.data}",
+      );
+      return false;
+    } catch (e) {
+      print("Exception in kycAppStatus: $e");
+      return false;
     }
   }
 }

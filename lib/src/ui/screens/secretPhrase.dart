@@ -124,6 +124,7 @@ class _SecretPhraseScreenState extends State<SecretPhraseScreen> {
     return Scaffold(
       backgroundColor: primaryBackgroundColor.value,
       body: SafeArea(
+        bottom: false,
         child: SizedBox(
           width: Get.width,
           height: Get.height,
@@ -277,6 +278,7 @@ class _SecretPhraseScreenState extends State<SecretPhraseScreen> {
                     ),
                   ),
                 ],
+                SizedBox(height: MediaQuery.of(context).viewPadding.bottom + 16),
               ],
             ),
           ),

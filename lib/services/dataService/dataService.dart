@@ -24,6 +24,8 @@ class DataService {
   Future<Response?> genericDioGetCall(String api) async {
     print(_baseURL + '$api');
 
+    final appController = getX.Get.find<AppController>();
+
     // Inner function to make the GET request with the current token
     Future<Response?> _makeRequest() async {
       final token = await getToken();
@@ -82,6 +84,13 @@ class DataService {
       }
     }
 
+    // Update auth failure tracking
+    if (_response?.statusCode == 401) {
+      await appController.handleAuth401();
+    } else {
+      appController.resetAuth401Counter();
+    }
+
     print(_baseURL + '$api' + ' Status_Code: ${_response?.statusCode}');
     return _response;
   }
@@ -94,6 +103,7 @@ class DataService {
   }) async {
     Response? _response;
     String? _authToken;
+    final appController = getX.Get.find<AppController>();
 
     // Internal function to make the POST request with the current token
     Future<Response?> _makeRequest({String? useToken}) async {
@@ -170,6 +180,13 @@ class DataService {
       } else {
         print("Token refresh failed.");
       }
+    }
+
+    // Update auth failure tracking
+    if (_response?.statusCode == 401) {
+      await appController.handleAuth401();
+    } else {
+      appController.resetAuth401Counter();
     }
 
     return _response;

@@ -67,30 +67,33 @@ class _SplashScreenState extends State<SplashScreen> {
     return Obx(
       () => Scaffold(
         backgroundColor: primaryBackgroundColor.value,
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Replace this with your crypto app logo if available
-              Image.asset('assets/transparentLogo.png'),
-              const SizedBox(height: 24),
-              Text(
-                "CADENA BITCOIN", // Example crypto name
-                style: AppTextStyles.heading1.copyWith(
-                  fontSize: 30,
-                  color: primaryTextColor.value,
-                  letterSpacing: 1.2,
+        body: SafeArea(
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Replace this with your crypto app logo if available
+                Image.asset('assets/transparentLogo.png'),
+                const SizedBox(height: 24),
+                Text(
+                  "CADENA BITCOIN", // Example crypto name
+                  style: AppTextStyles.heading1.copyWith(
+                    fontSize: 30,
+                    color: primaryTextColor.value,
+                    letterSpacing: 1.2,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                "Your gateway to decentralized finance",
-                style: AppTextStyles.body.copyWith(
-                  fontSize: 14,
-                  color: subTextColor.value,
+                const SizedBox(height: 10),
+                Text(
+                  "Your gateway to decentralized finance",
+                  style: AppTextStyles.body.copyWith(
+                    fontSize: 14,
+                    color: subTextColor.value,
+                  ),
                 ),
-              ),
-            ],
+                SizedBox(height: MediaQuery.of(context).viewPadding.bottom + 16),
+              ],
+            ),
           ),
         ),
       ),

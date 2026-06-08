@@ -16,6 +16,7 @@ class _ScanResultState extends State<ScanResult> {
     return Scaffold(
       backgroundColor: primaryBackgroundColor.value,
       body: SafeArea(
+        bottom: false,
         child: Padding(
           padding: const EdgeInsets.all(18.0),
           child: Column(

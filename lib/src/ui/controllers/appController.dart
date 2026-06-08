@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:signer/models/appVersionEPModel.dart';
@@ -7,6 +8,8 @@ import 'package:signer/models/userOfferDlcPollModel.dart';
 import 'package:signer/models/user_profile_model.dart';
 import 'package:signer/models/xpub_validation_model.dart';
 import 'package:signer/models/dlc_signature_response_model.dart';
+import 'package:signer/services/storage_service.dart';
+import 'package:signer/src/ui/screens/splashScreen.dart';
 import 'package:bip32/bip32.dart'as bip32;
 
 /// AppController - Central configuration for network settings
@@ -55,9 +58,17 @@ class AppController extends GetxController {
   // Home screen state management
   var showVerifyButton = true.obs;
   var showScanButton = false.obs;
+  var showResetButton = false.obs;
   
   // XPUB mismatch state management
   var xpubMismatchDetected = false.obs;
+  
+  // Server connection state
+  var serverReachable = true.obs;
+
+  // Auth failure tracking (401 responses)
+  var consecutive401Count = 0.obs;
+  static const int max401BeforeWipe = 10;
 
   // ========================================
   // NETWORK CONFIGURATION - EASY SWITCHING
@@ -75,7 +86,7 @@ class AppController extends GetxController {
   
   /// API Base URL - change this for different environments
   static const String API_BASE_URL = "http://cadenabitcoin.com/app";
-  // For staging: "http://staging.purabitcoin.com/app"
+  // For mainnet: "http://cadenabitcoin.com/app"
   
   // ========================================
   // BIP32 NETWORK TYPES
@@ -202,54 +213,205 @@ class AppController extends GetxController {
   // STATUS MANAGEMENT
   // ========================================
   
-  /// Get user status based on auth code level
+  /// Get user status based on decision tree conditions
   String getUserStatus() {
+    // Check server reachability first
+    if (!serverReachable.value) {
+      return "CadenaBitcoin out of reach";
+    }
+    
+    // Check XPUB mismatch
+    if (xpubMismatchDetected.value) {
+      return "XPUB mismatch";
+    }
+    
     final authCode = userProfileObject.value.payload?.authCode;
-    if(authCode == null){
+    final remoteXpub = userProfileObject.value.payload?.xpub;
+    final hasRemoteXpub = remoteXpub != null && remoteXpub.isNotEmpty;
+    
+    if (authCode == null) {
       return "Please verify";
     }
-    if (authCode < 2) {
+    
+    // Check if user is registered (bit-1 set)
+    final isRegistered = (authCode & 2) != 0;
+    
+    if (!isRegistered) {
       return "Check Email";
-    } else if (authCode < 6) {
-      return "Active";
-    } else if (authCode == 6) {
-      return "Signer";
-    } else {
-      return "";
     }
+    
+    if (!hasRemoteXpub) {
+      // Condition C: No remote XPUB
+      return "Active";
+    }
+    
+    // Condition D: Has remote XPUB and matches (fully paired)
+    return "Signer";
   }
   
   /// Get appropriate icon for user status
   IconData getStatusIcon() {
+    if (!serverReachable.value) {
+      return Icons.cloud_off_outlined;
+    }
+    
+    if (xpubMismatchDetected.value) {
+      return Icons.error_outline;
+    }
+    
     final authCode = userProfileObject.value.payload?.authCode;
-    if(authCode == null){
+    final remoteXpub = userProfileObject.value.payload?.xpub;
+    final hasRemoteXpub = remoteXpub != null && remoteXpub.isNotEmpty;
+    
+    if (authCode == null) {
       return Icons.help_outline;
     }
-    if (authCode < 2) {
+    
+    final isRegistered = (authCode & 2) != 0;
+    
+    if (!isRegistered) {
       return Icons.email_outlined;
-    } else if (authCode < 6) {
-      return Icons.verified_user_outlined;
-    } else if (authCode == 6) {
-      return Icons.security_outlined;
-    } else {
-      return Icons.help_outline;
     }
+    
+    if (!hasRemoteXpub) {
+      return Icons.verified_user_outlined;
+    }
+    
+    return Icons.security_outlined;
   }
   
   /// Get appropriate color for user status
   Color getStatusColor() {
+    if (!serverReachable.value) {
+      return Colors.red;
+    }
+    
+    if (xpubMismatchDetected.value) {
+      return Colors.red;
+    }
+    
     final authCode = userProfileObject.value.payload?.authCode;
-    if(authCode == null){
+    final remoteXpub = userProfileObject.value.payload?.xpub;
+    final hasRemoteXpub = remoteXpub != null && remoteXpub.isNotEmpty;
+    
+    if (authCode == null) {
       return Colors.grey;
     }
-    if (authCode < 2) {
+    
+    final isRegistered = (authCode & 2) != 0;
+    
+    if (!isRegistered) {
       return Colors.orange;
-    } else if (authCode < 6) {
-      return Colors.blue;
-    } else if (authCode == 6) {
-      return Colors.green;
+    }
+    
+    if (!hasRemoteXpub) {
+      // Condition C: ORANGE for pairing needed
+      return Colors.orange;
+    }
+    
+    // Condition D: GREEN for fully paired
+    return Colors.green;
+  }
+  
+  // ========================================
+  // BUTTON VISIBILITY CONTROL
+  // ========================================
+  
+  /// Update button visibility based on decision tree conditions
+  /// Condition C (no remote XPUB, auth_code = ..x01x): Scan ON, Verify ON, Reset HIDE
+  /// Condition D mismatch (!D): Scan OFF, Verify OFF, Reset ON
+  /// Condition D match (D): Scan OFF, Verify OFF, Reset HIDE
+  /// HALT states: Scan OFF, Verify ON, Reset HIDE
+  void updateButtonVisibility({
+    required bool isServerReachable,
+    required bool hasRemoteXpub,
+    required bool xpubMatches,
+    required bool isHaltState,
+  }) {
+    if (!isServerReachable || isHaltState) {
+      // HALT states: server unreachable or other halt conditions
+      showScanButton.value = false;
+      showVerifyButton.value = true;
+      showResetButton.value = false;
+    } else if (!hasRemoteXpub) {
+      // Condition C: No remote XPUB (auth_code = ..x01x)
+      showScanButton.value = true;
+      showVerifyButton.value = true;
+      showResetButton.value = false;
+    } else if (!xpubMatches) {
+      // Condition !D: XPUB mismatch
+      showScanButton.value = false;
+      showVerifyButton.value = false;
+      showResetButton.value = true;
     } else {
-      return Colors.grey;
+      // Condition D: XPUB matches - fully paired
+      showScanButton.value = false;
+      showVerifyButton.value = false;
+      showResetButton.value = false;
+    }
+  }
+  
+  /// Set server reachability status
+  void setServerReachable(bool reachable) {
+    serverReachable.value = reachable;
+  }
+
+  /// Handle consecutive 401 authentication failures.
+  Future<void> handleAuth401() async {
+    consecutive401Count.value++;
+    if (consecutive401Count.value >= max401BeforeWipe) {
+      consecutive401Count.value = 0;
+      await _showAuthFailureResetDialog();
+    }
+  }
+
+  /// Reset the 401 counter on successful authenticated calls.
+  void resetAuth401Counter() {
+    consecutive401Count.value = 0;
+  }
+
+  Future<void> _showAuthFailureResetDialog() async {
+    Get.dialog(
+      AlertDialog(
+        title: const Text("Session Invalid"),
+        content: const Text(
+            "We received repeated authentication errors. Your account may have been removed. Please reset your data."),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () async {
+              Get.back();
+              await _wipeAllData();
+              Get.offAll(() => SplashScreen());
+            },
+            child: const Text(
+              "Reset Data",
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+      barrierDismissible: false,
+    );
+  }
+
+  /// Wipe all local data (shared with auth failure and xpub mismatch flows)
+  Future<void> _wipeAllData() async {
+    try {
+      await StorageService.clearAllUsers();
+
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+
+      const FlutterSecureStorage storage = FlutterSecureStorage();
+      await storage.deleteAll();
+
+      print("All data wiped due to repeated authentication failures");
+    } catch (e) {
+      print("Error wiping data after auth failures: $e");
     }
   }
 }

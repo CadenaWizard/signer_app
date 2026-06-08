@@ -90,72 +90,76 @@ class _LoginUsingMnemonicScreenState extends State<LoginUsingMnemonicScreen> {
           title: const Text('Login'),
           centerTitle: true,
         ),
-        body: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisAlignment: MainAxisAlignment.center,
-              spacing: 16,
-              children: [
-                const SizedBox(height: 64),
-                Text(
-                  "Welcome Back 👋",
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: primaryTextColor.value,
-                  ),
-                ),
-                Text(
-                  "Login using your recovery phrase",
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: primaryTextColor.value.withOpacity(0.7),
-                  ),
-                ),
-                Text(
-                  "Enter your details below to continue:",
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: primaryTextColor.value.withOpacity(0.6),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                AppTextField(
-                    hintText: "Email",
-                    controller: emailController,
-                    keyboardType: TextInputType.emailAddress),
-                if (emailError != null)
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(emailError!,
-                        style: TextStyle(color: Colors.red, fontSize: 12)),
-                  ),
-
-
-                AppTextField(
-                    hintText: "Password",
-                    controller: passwordController,
-                    isPassword: true,
-                    obscureText: true),
-                if (passwordError != null)
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 4.0),
-                      child: Text(passwordError!,
-                          style: TextStyle(color: Colors.red, fontSize: 12)),
+        body: SafeArea(
+          bottom: false,
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                spacing: 16,
+                children: [
+                  const SizedBox(height: 64),
+                  Text(
+                    "Welcome Back 👋",
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: primaryTextColor.value,
                     ),
                   ),
-                const SizedBox(height: 16),
-                PrimaryButton(
-                  // text: "Login",
-                  text: "Proceed",
-                  onTap: _verify,
-                ),
-              ],
+                  Text(
+                    "Login using your recovery phrase",
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: primaryTextColor.value.withOpacity(0.7),
+                    ),
+                  ),
+                  Text(
+                    "Enter your details below to continue:",
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: primaryTextColor.value.withOpacity(0.6),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  AppTextField(
+                      hintText: "Email",
+                      controller: emailController,
+                      keyboardType: TextInputType.emailAddress),
+                  if (emailError != null)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(emailError!,
+                          style: TextStyle(color: Colors.red, fontSize: 12)),
+                    ),
+
+
+                  AppTextField(
+                      hintText: "Password",
+                      controller: passwordController,
+                      isPassword: true,
+                      obscureText: true),
+                  if (passwordError != null)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 4.0),
+                        child: Text(passwordError!,
+                            style: TextStyle(color: Colors.red, fontSize: 12)),
+                      ),
+                    ),
+                  const SizedBox(height: 16),
+                  PrimaryButton(
+                    // text: "Login",
+                    text: "Proceed",
+                    onTap: _verify,
+                  ),
+                  SizedBox(height: MediaQuery.of(context).viewPadding.bottom + 16),
+                ],
+              ),
             ),
           ),
         ),

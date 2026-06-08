@@ -98,35 +98,39 @@ class _ChooseOptionScreenState extends State<ChooseOptionScreen> {
             ),
           ),
         ),
-        body: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Center(
-            child: Column(
-              spacing: 16,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Already have a mnemonic? Log in using your mnemonic, or proceed to generate a new one.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 16, color: Colors.white),
-                ),
-                SizedBox(height: 8),
-                PrimaryButton(
-                  text: "Enter Seed Phrase",
-                  onTap: () {
-                    _onLoginWithMnemonicPressed();
-                  },
-                  isLoading: _isLoading,
-                ),
-                PrimaryButton(
-                  text: "Generate Seed Phrase",
-                  onTap: () {
-                    _onRegisteredPressed();
-                  },
-                  isLoading: _isLoading,
-                  loadingText: 'Generating...',
-                ),
-              ],
+        body: SafeArea(
+          bottom: false,
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Center(
+              child: Column(
+                spacing: 16,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Already have a mnemonic? Log in using your mnemonic, or proceed to generate a new one.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 16, color: Colors.white),
+                  ),
+                  SizedBox(height: 8),
+                  PrimaryButton(
+                    text: "Enter Seed Phrase",
+                    onTap: () {
+                      _onLoginWithMnemonicPressed();
+                    },
+                    isLoading: _isLoading,
+                  ),
+                  PrimaryButton(
+                    text: "Generate Seed Phrase",
+                    onTap: () {
+                      _onRegisteredPressed();
+                    },
+                    isLoading: _isLoading,
+                    loadingText: 'Generating...',
+                  ),
+                  SizedBox(height: MediaQuery.of(context).viewPadding.bottom + 16),
+                ],
+              ),
             ),
           ),
         ),

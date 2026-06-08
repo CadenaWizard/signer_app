@@ -69,11 +69,11 @@ class _VerifyPasswordScreenState extends State<VerifyPasswordScreen> {
         passwordError = null;
       });
       appController.loginLoader.value = false;
-      Get.snackbar("Error", "Incorrect password",
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-          duration: Duration(seconds: 4));
+      // Get.snackbar("Error", "Incorrect password",
+      //     snackPosition: SnackPosition.BOTTOM,
+      //     backgroundColor: Colors.red,
+      //     colorText: Colors.white,
+      //     duration: Duration(seconds: 4));
     }
   }
 
@@ -92,80 +92,84 @@ class _VerifyPasswordScreenState extends State<VerifyPasswordScreen> {
                 AppTextStyles.heading2.copyWith(color: primaryTextColor.value),
           ),
         ),
-        body: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: SingleChildScrollView(
-            child: Column(
-              spacing: 16,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Center(
-                  child: Column(
-                    children: [
-                      Image.asset(
-                        'assets/transparentLogo.png',
-                        height: 150,
-                      ),
-                      Text(
-                        "Welcome Back 👋",
-                        style: AppTextStyles.heading2.copyWith(
-                          color: primaryTextColor.value,
-                          fontWeight: FontWeight.bold,
+        body: SafeArea(
+          bottom: false,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: SingleChildScrollView(
+              child: Column(
+                spacing: 16,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Center(
+                    child: Column(
+                      children: [
+                        Image.asset(
+                          'assets/transparentLogo.png',
+                          height: 150,
                         ),
-                      ),
-                      Text(
-                        "Please verify your password to continue",
-                        style: AppTextStyles.body.copyWith(
-                          color: subTextColor.value,
-                          fontSize: 14,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 8),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  spacing: 16,
-                  children: [
-                    if (email != null) ...[
-                      Text(
-                        "Email",
-                        style: AppTextStyles.body
-                            .copyWith(color: subTextColor.value),
-                      ),
-                      Text(
-                        email!,
-                        style: AppTextStyles.heading3
-                            .copyWith(color: primaryTextColor.value),
-                      ),
-                      AppTextField(
-                        hintText: "Password",
-                        controller: passwordController,
-                        obscureText: true,
-                        isPassword: true,
-                      ),
-                      if (passwordError != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4.0),
-                          child: Text(
-                            passwordError!,
-                            style: const TextStyle(
-                                color: Colors.red, fontSize: 12),
+                        Text(
+                          "Welcome Back 👋",
+                          style: AppTextStyles.heading2.copyWith(
+                            color: primaryTextColor.value,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
+                        Text(
+                          "Please verify your password to continue",
+                          style: AppTextStyles.body.copyWith(
+                            color: subTextColor.value,
+                            fontSize: 14,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    spacing: 16,
+                    children: [
+                      if (email != null) ...[
+                        Text(
+                          "Email",
+                          style: AppTextStyles.body
+                              .copyWith(color: subTextColor.value),
+                        ),
+                        Text(
+                          email!,
+                          style: AppTextStyles.heading3
+                              .copyWith(color: primaryTextColor.value),
+                        ),
+                        AppTextField(
+                          hintText: "Password",
+                          controller: passwordController,
+                          obscureText: true,
+                          isPassword: true,
+                        ),
+                        if (passwordError != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4.0),
+                            child: Text(
+                              passwordError!,
+                              style: const TextStyle(
+                                  color: Colors.red, fontSize: 12),
+                            ),
+                          ),
+                      ],
                     ],
-                  ],
-                ),
-                SizedBox(height: 8),
-                PrimaryButton(
-                  text: "Login",
-                  onTap: _verifyPassword,
-                  isLoading: appController.loginLoader.value,
-                  loadingText: "Processing...",
-                ),
-              ],
+                  ),
+                  SizedBox(height: 8),
+                  PrimaryButton(
+                    text: "Login",
+                    onTap: _verifyPassword,
+                    isLoading: appController.loginLoader.value,
+                    loadingText: "Processing...",
+                  ),
+                  SizedBox(height: MediaQuery.of(context).viewPadding.bottom + 16),
+                ],
+              ),
             ),
           ),
         ),

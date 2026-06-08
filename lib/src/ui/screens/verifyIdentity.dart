@@ -83,6 +83,7 @@ class _VerifyIdentityState extends State<VerifyIdentity> {
       () => Scaffold(
         backgroundColor: primaryBackgroundColor.value,
         body: SafeArea(
+          bottom: false,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
@@ -135,6 +136,7 @@ class _VerifyIdentityState extends State<VerifyIdentity> {
                 SizedBox(height: 60),
 
                 PrimaryButton(text: "Verify", onTap: verifyIdentity),
+                SizedBox(height: MediaQuery.of(context).viewPadding.bottom + 16),
               ],
             ),
           ),

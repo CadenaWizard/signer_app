@@ -124,7 +124,6 @@ class _ConfirmSeedPhraseScreenState extends State<ConfirmSeedPhraseScreen> {
 
       // Use current network configuration from AppController
       final root = BIP32.fromSeed(seed, appController.currentNetworkType);
-      xPub.value = root.neutered().toBase58(); // xpub/vpub generated
 
       final account = root.derivePath(appController.currentDerivationPath);
       final xpub = account.neutered().toBase58();
@@ -149,7 +148,7 @@ class _ConfirmSeedPhraseScreenState extends State<ConfirmSeedPhraseScreen> {
 
       if (widget.fromPage == "import_wallet") {
         print("==============import wallet");
-        // ApiService().xpubValidation(xpub: xPub.value).then((onValue) async {
+        // ApiService().xpubValidation(xpub: xpub).then((onValue) async {
         // if (appController.xpubValidationObject.value.payload == true) {
         await StorageService.saveWalletData(
           email: widget.email,
@@ -157,7 +156,7 @@ class _ConfirmSeedPhraseScreenState extends State<ConfirmSeedPhraseScreen> {
           mnemonic: widget.mnemonic,
           address: '',
           privateKey: privateKeyHex.value,
-          xpub: xPub.value,
+          xpub: xpub,
         );
         await StorageService.setLoginStatus(true);
 
@@ -176,7 +175,7 @@ class _ConfirmSeedPhraseScreenState extends State<ConfirmSeedPhraseScreen> {
           mnemonic: widget.mnemonic,
           address: '',
           privateKey: privateKeyHex.value,
-          xpub: xPub.value,
+          xpub: xpub,
         );
         // Add this line to set isLoggedIn to true
         await StorageService.setLoginStatus(true);
@@ -254,91 +253,95 @@ class _ConfirmSeedPhraseScreenState extends State<ConfirmSeedPhraseScreen> {
           foregroundColor: primaryTextColor.value,
           elevation: 0,
         ),
-        body: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Select the correct words for these positions:",
-                style: TextStyle(
-                  color: primaryTextColor.value,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+        body: SafeArea(
+          bottom: false,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Select the correct words for these positions:",
+                  style: TextStyle(
+                    color: primaryTextColor.value,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: List.generate(confirmIndices.length, (i) {
-                  return GestureDetector(
-                    onTap: () => _removeSelected(i),
-                    child: Container(
-                      width: 100,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: selectedWords[i] == null
-                            ? surfaceColor.value
-                            : successColor.value.withOpacity(0.2),
-                        border: Border.all(color: borderColor.value),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        selectedWords[i] ?? 'Word ${confirmIndices[i] + 1}',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: List.generate(confirmIndices.length, (i) {
+                    return GestureDetector(
+                      onTap: () => _removeSelected(i),
+                      child: Container(
+                        width: 100,
+                        height: 60,
+                        decoration: BoxDecoration(
                           color: selectedWords[i] == null
-                              ? hintTextColor.value
-                              : successColor.value,
-                          fontWeight: FontWeight.w600,
+                              ? surfaceColor.value
+                              : successColor.value.withOpacity(0.2),
+                          border: Border.all(color: borderColor.value),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          selectedWords[i] ?? 'Word ${confirmIndices[i] + 1}',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: selectedWords[i] == null
+                                ? hintTextColor.value
+                                : successColor.value,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
-                    ),
-                  );
-                }),
-              ),
-              const SizedBox(height: 32),
-              Text(
-                "Tap the correct words:",
-                style: TextStyle(color: subTextColor.value),
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: options.map((word) {
-                  return ElevatedButton(
-                    onPressed: () => _onWordTap(word),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: inputFieldBackgroundColor.value,
-                      foregroundColor: primaryTextColor.value,
-                      elevation: 1,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                    );
+                  }),
+                ),
+                const SizedBox(height: 32),
+                Text(
+                  "Tap the correct words:",
+                  style: TextStyle(color: subTextColor.value),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: options.map((word) {
+                    return ElevatedButton(
+                      onPressed: () => _onWordTap(word),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: inputFieldBackgroundColor.value,
+                        foregroundColor: primaryTextColor.value,
+                        elevation: 1,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
                       ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 10,
-                      ),
-                    ),
-                    child: Text(word),
-                  );
-                }).toList(),
-              ),
-              const Spacer(),
-              PrimaryButton(
-                text: "Verify",
-                onTap: () {
-                  if (!selectedWords.contains(null)) {
-                    _verify();
-                  }
-                },
-                isLoading: appController.userUpgradeLoader.value,
-                loadingText: "Processing...",
-              ),
-              const SizedBox(height: 24),
-            ],
+                      child: Text(word),
+                    );
+                  }).toList(),
+                ),
+                const Spacer(),
+                PrimaryButton(
+                  text: "Verify",
+                  onTap: () {
+                    if (!selectedWords.contains(null)) {
+                      _verify();
+                    }
+                  },
+                  isLoading: appController.userUpgradeLoader.value,
+                  loadingText: "Processing...",
+                ),
+                const SizedBox(height: 24),
+                SizedBox(height: MediaQuery.of(context).viewPadding.bottom + 16),
+              ],
+            ),
           ),
         ),
       ),

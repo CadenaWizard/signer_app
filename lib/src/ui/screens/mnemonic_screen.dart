@@ -136,101 +136,105 @@ class _MnemonicScreenState extends State<MnemonicScreen> {
     return Obx(
       () => Scaffold(
         backgroundColor: primaryBackgroundColor.value,
-        body: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: ListView(
-            // mainAxisAlignment: MainAxisAlignment.center,
-            // crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Text(
-                "Enter Your Seed Phrase",
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+        body: SafeArea(
+          bottom: false,
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: ListView(
+              // mainAxisAlignment: MainAxisAlignment.center,
+              // crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  "Enter Your Seed Phrase",
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                "Type the exact 12 words of your mnemonic.\nMake sure they are in the correct order.",
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.white70,
+                const SizedBox(height: 8),
+                Text(
+                  "Type the exact 12 words of your mnemonic.\nMake sure they are in the correct order.",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.white70,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              // Grid of 12 text fields for mnemonic words (2 per column)
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: 3.5,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                ),
-                itemCount: 12,
-                itemBuilder: (context, index) {
-                  return Row(
-                    children: [
-                      // Number on the left
-                      Container(
-                        width: 24,
-                        alignment: Alignment.center,
-                        child: Text(
-                          '${index + 1}.',
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
+                const SizedBox(height: 16),
+                // Grid of 12 text fields for mnemonic words (2 per column)
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 3.5,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                  ),
+                  itemCount: 12,
+                  itemBuilder: (context, index) {
+                    return Row(
+                      children: [
+                        // Number on the left
+                        Container(
+                          width: 24,
+                          alignment: Alignment.center,
+                          child: Text(
+                            '${index + 1}.',
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      // Text field
-                      Expanded(
-                        child: AppTextField(
-                          controller: _wordControllers[index],
-                          hintText: "word ${index + 1}",
-                          enablePaste: false,
-                          inputFormatters: [
-                            // Prevent spaces from being entered
-                            FilteringTextInputFormatter.deny(RegExp(r'\s')),
-                            // Prevent paste operations
-                            NoPasteFormatter(),
-                          ],
-                          onChange: (value) {
-                            // Auto-focus next field when current field is filled
-                            if (value.isNotEmpty && index < 11) {
-                              _focusNodes[index + 1].requestFocus();
-                            }
-                          },
+                        const SizedBox(width: 8),
+                        // Text field
+                        Expanded(
+                          child: AppTextField(
+                            controller: _wordControllers[index],
+                            hintText: "word ${index + 1}",
+                            enablePaste: false,
+                            inputFormatters: [
+                              // Prevent spaces from being entered
+                              FilteringTextInputFormatter.deny(RegExp(r'\s')),
+                              // Prevent paste operations
+                              NoPasteFormatter(),
+                            ],
+                            onChange: (value) {
+                              // Auto-focus next field when current field is filled
+                              if (value.isNotEmpty && index < 11) {
+                                _focusNodes[index + 1].requestFocus();
+                              }
+                            },
+                          ),
                         ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-              const SizedBox(height: 50),
-              Text(
-                "⚠️ Keep your mnemonic safe. Anyone with this phrase can access your wallet.",
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.redAccent.shade100,
-                  fontStyle: FontStyle.italic,
+                      ],
+                    );
+                  },
                 ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              PrimaryButton(
-                text: "Verify",
-                onTap: _verify,
-                isLoading: _isVerifying,
-                loadingText: 'Verifying...',
-              ),
-            ],
+                const SizedBox(height: 50),
+                Text(
+                  "⚠️ Keep your mnemonic safe. Anyone with this phrase can access your wallet.",
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.redAccent.shade100,
+                    fontStyle: FontStyle.italic,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                PrimaryButton(
+                  text: "Verify",
+                  onTap: _verify,
+                  isLoading: _isVerifying,
+                  loadingText: 'Verifying...',
+                ),
+                SizedBox(height: MediaQuery.of(context).viewPadding.bottom + 16),
+              ],
+            ),
           ),
         ),
       ),

@@ -36,6 +36,7 @@ class _MnemonicRecoveryScreenState extends State<MnemonicRecoveryScreen> {
       backgroundColor: primaryBackgroundColor.value,
 
       body: SafeArea(
+        bottom: false,
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -130,6 +131,7 @@ class _MnemonicRecoveryScreenState extends State<MnemonicRecoveryScreen> {
                 },
                 child: Text('Exit', style: AppTextStyles.body.copyWith(color: errorColor.value)),
               ),
+              SizedBox(height: MediaQuery.of(context).viewPadding.bottom + 16),
             ],
           ),
         ),

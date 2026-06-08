@@ -47,7 +47,7 @@ class _SignInScreenState extends State<SignInScreen> {
       );
       return;
     }
-    
+
     if (selectedUserType == 'new') {
       _showNewUserAlert();
     } else if (selectedUserType == 'existing') {
@@ -167,6 +167,7 @@ class _SignInScreenState extends State<SignInScreen> {
       () => Scaffold(
         backgroundColor: primaryBackgroundColor.value,
         body: SafeArea(
+          bottom: false,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
@@ -204,6 +205,7 @@ class _SignInScreenState extends State<SignInScreen> {
                   text: "Proceed",
                   onTap: handleProceed,
                 ),
+                SizedBox(height: MediaQuery.of(context).viewPadding.bottom + 16),
               ],
             ),
           ),
@@ -224,10 +226,10 @@ class _SignInScreenState extends State<SignInScreen> {
         ),
         content: Text(
           'You are registering on Cadena for the first time. You did not introduce a Wallet (SeedPhrase) to Cadena yet.\n\n'
-              'Click "Proceed" if you either:\n'
-              '• Want Cadena to generate you a new SeedPhrase\n'
-              '• Want to import your existing wallet into the Cadena ecosystem\n'
-              '• Want to enter a SeedPhrase you generated using external entropy',
+          'Click "Proceed" if you either:\n'
+          '• Want Cadena to generate you a new SeedPhrase\n'
+          '• Want to import your existing wallet into the Cadena ecosystem\n'
+          '• Want to enter a SeedPhrase you generated using external entropy',
           style: AppTextStyles.body.copyWith(
             color: primaryTextColor.value,
           ),
