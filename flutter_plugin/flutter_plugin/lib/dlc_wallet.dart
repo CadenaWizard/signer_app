@@ -229,13 +229,14 @@ class DlcWallet {
   /// Sign hash with ECDSA
   /// Used for: Transaction signing, message authentication
   static Future<String> signHashEcdsa(
-      String hash, int signerIndex, String signerPubkey) async {
+      String hash, int signerIndex, int signerIndex4, String signerPubkey) async {
     if (Platform.isIOS) {
       // Use method channel for iOS
       try {
         final result = await _channel.invokeMethod('signHashEcdsa', {
           'hash': hash,
           'signerIndex': signerIndex,
+          'signerIndex4': signerIndex4,
           'signerPubkey': signerPubkey,
         });
         return result.toString();
@@ -301,6 +302,7 @@ class DlcWallet {
     required String digitStringTemplate,
     required String oraclePublicKey,
     required int signingKeyIndex,
+    required int signingKeyIndex4,
     required String signingPublicKey,
     required List<String> nonces,
     required List<String> intervalWildcards,
@@ -315,6 +317,7 @@ class DlcWallet {
           'digitStringTemplate': digitStringTemplate,
           'oraclePublicKey': oraclePublicKey,
           'signingKeyIndex': signingKeyIndex,
+          'signingKeyIndex4': signingKeyIndex4,
           'signingPublicKey': signingPublicKey,
           'nonces': nonces,
           'intervalWildcards': intervalWildcards,
@@ -353,7 +356,7 @@ class DlcWallet {
           numCets,
           digitStringTemplatePtr,
           oraclePublicKeyPtr,
-          0,
+          signingKeyIndex4,
           signingKeyIndex,
           signingPublicKeyPtr,
           noncesPtr,
@@ -451,9 +454,9 @@ class DlcWallet {
 
   /// Sign a Bitcoin transaction hash
   /// Used for: Transaction signing in wallet applications
-  static Future<String> signTransaction(String txHash, int keyIndex) async {
+  static Future<String> signTransaction(String txHash, int keyIndex, int keyIndex4) async {
     final publicKey = await getPublicKey(keyIndex);
-    return await signHashEcdsa(txHash, keyIndex, publicKey);
+    return await signHashEcdsa(txHash, keyIndex, keyIndex4, publicKey);
   }
 
   /// Check if the native library is loaded
