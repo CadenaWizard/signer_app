@@ -1,0 +1,6 @@
+== Commit test
+
+Hey fellow contributors!
+
+Need to check if current project repo excepts commits from the working-horse account.  
+
